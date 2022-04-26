@@ -96,7 +96,7 @@ otherise the default domain is used.
 
 Optional keyword arguments:
 - `message`: a text string
-- `color`:
+- `color`: a `Colorant` from the Colors.jl package, or an integer containing an ARGB32 value.
 - `payload`: a 32- or 64-bit integer or floating point number
 - `category`: a positive integer. See [`name_category`](@ref).
 """
