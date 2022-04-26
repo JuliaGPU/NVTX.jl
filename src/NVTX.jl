@@ -1,5 +1,7 @@
 module NVTX
 
+import Colors
+
 const libnvToolsExt = "libnvToolsExt"
 
 mutable struct Domain
@@ -65,6 +67,10 @@ function unsafe_EventAttributes(;
     color=nothing,
     category=nothing,
     payload=nothing)
+
+    if color isa Colors.Colorant
+        color = Colors.ARGB32(color).color
+    end
 
     EventAttributes(
         3,                        # version
@@ -144,6 +150,9 @@ Starts a nested thread range. Returns the 0-based level of range being started (
 
 Must be completed with [`range_pop`](@ref).
 
+!!! note
+    This does not appear to work correctly.
+
 See [`mark`](@ref) for the keyword arguments.
 """
 function range_push(domain::Domain; kwargs...)
@@ -152,6 +161,7 @@ function range_push(domain::Domain; kwargs...)
       ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
     end
 end
+
 
 """
     range_pop([domain::Domain])
@@ -176,10 +186,21 @@ function name_category(category::Integer, name::AbstractString)
 end
 function name_category(domain::Domain, category::Integer, name::AbstractString)
     ccall((:nvtxDomainNameCategoryA, libnvToolsExt), Cvoid,
-    (Domain, UInt32, Cstring), domain.ptr, category, name)
+    (Ptr{Cvoid}, UInt32, Cstring), domain.ptr, category, name)
 end
 
+function name_os_thread(threadid::Integer, name::AbstractString)
+    ccall((:nvtxNameOsThreadA, libnvToolsExt), Cvoid,
+        (UInt32, Cstring), threadid, name)
+end
 
+gettid() = ccall(:syscall, Cint, (Clong, Clong...), 186)
+
+function name_threads_julia()
+    Threads.@threads :static for t = 1:Threads.nthreads()
+        name_os_thread(gettid(), "julia thread $(Threads.threadid())")
+    end
+end
 
 
 
