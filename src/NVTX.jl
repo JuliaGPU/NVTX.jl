@@ -4,6 +4,16 @@ import Colors
 
 const libnvToolsExt = "libnvToolsExt"
 
+
+NSYS_ACTIVE = Ref{Bool}(false)
+
+function __init__()
+    NSYS_ACTIVE[] = haskey(ENV, "NSYS_PROFILING_SESSION_ID")
+end
+
+isactive() = NSYS_ACTIVE[]
+
+
 mutable struct Domain
     ptr::Ptr{Cvoid}
 end
@@ -15,7 +25,7 @@ end
 """
     Domain(name::AbstractString)
 
-Construct a new NVTX domain.
+Construct a new NVTX domain with `name`.
 
 See [NVTX Domains](https://nvidia.github.io/NVTX/doxygen/index.html#DOMAINS).
 """
@@ -26,6 +36,16 @@ function Domain(name::AbstractString)
 end
 
 const DEFAULT_DOMAIN = Domain(C_NULL)
+
+struct StringHandle
+    ptr::Ptr{Cvoid}
+end
+
+function StringHandle(domain::Domain, string::AbstractString)
+    StringHandle(ccall((:nvtxDomainRegisterStringA, libnvToolsExt), Ptr{Cvoid},
+        (Ptr{Cvoid},Cstring), domain.ptr, string))
+end
+StringHandle(string::AbstractString) = StringHandle(DEFAULT_DOMAIN, string)
 
 
 
@@ -40,7 +60,7 @@ struct EventAttributes
     payload::UInt64
     messagetype::Int32
     message::Ptr{Cvoid}
-
+    messageref # for GC
 end
 
 payloadtype(::Nothing) = 0
@@ -62,7 +82,7 @@ payloadval(payload::Int32) = UInt64(reinterpret(UInt32,payload))
 payloadval(payload::Float32) = UInt64(reinterpret(UInt32,payload))
 
 
-function unsafe_EventAttributes(;
+function EventAttributes(;
     message=nothing,
     color=nothing,
     category=nothing,
@@ -70,6 +90,10 @@ function unsafe_EventAttributes(;
 
     if color isa Colors.Colorant
         color = Colors.ARGB32(color).color
+    end
+
+    if message isa AbstractString
+        message = Base.cconvert(Cstring, message)
     end
 
     EventAttributes(
@@ -81,8 +105,9 @@ function unsafe_EventAttributes(;
         payloadtype(payload),     # payloadtype
         0,                        # reserved0
         payloadval(payload),      # payload
-        isnothing(message) ? 0 : 1,            # messagetype
-        Base.unsafe_convert(Cstring, message), # message
+        isnothing(message) ? 0 : message isa StringHandle ? 2 : 1,      # messagetype
+        isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
+        message,
     )
 end
 
@@ -100,19 +125,15 @@ Optional keyword arguments:
 - `payload`: a 32- or 64-bit integer or floating point number
 - `category`: a positive integer. See [`name_category`](@ref).
 """
-function mark(domain::Domain; kwargs...)
-  GC.@preserve kwargs begin
-      attr = unsafe_EventAttributes(;kwargs...)
-      ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
-        (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
-  end
-end
 function mark(;kwargs...)
-    GC.@preserve kwargs begin
-        attr = unsafe_EventAttributes(;kwargs...)
-        ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
-            (Ptr{EventAttributes},), Ref(attr))
-    end
+    attr = EventAttributes(;kwargs...)
+    ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
+        (Ptr{EventAttributes},), Ref(attr))
+end
+function mark(domain::Domain; kwargs...)
+    attr = EventAttributes(;kwargs...)
+    ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
+    (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
 end
 
 
@@ -127,11 +148,13 @@ Returns a `RangeId` value, which should be passed to [`range_end`](@ref).
 
 See [`mark`](@ref) for the keyword arguments.
 """
+function range_start(; kwargs...)
+    attr = EventAttributes(;kwargs...)
+    ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+end
 function range_start(domain::Domain; kwargs...)
-    GC.@preserve kwargs begin
-      attr = unsafe_EventAttributes(;kwargs...)
-      ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
-    end
+    attr = EventAttributes(;kwargs...)
+    ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
 end
 
 """
@@ -156,12 +179,13 @@ Must be completed with [`range_pop`](@ref).
 See [`mark`](@ref) for the keyword arguments.
 """
 function range_push(domain::Domain; kwargs...)
-    GC.@preserve kwargs begin
-      attr = unsafe_EventAttributes(;kwargs...)
-      ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
-    end
+    attr = EventAttributes(;kwargs...)
+    ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
 end
-
+function range_push(domain::Domain; kwargs...)
+    attr = EventAttributes(;kwargs...)
+    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+end
 
 """
     range_pop([domain::Domain])
@@ -170,9 +194,13 @@ Ends a nested thread range. The `domain` argument must match that from [`range_p
 
 Returns the 0-based level of the range being ended.
 """
-function range_pop(domain::Domain)
-    ccall((:nvtxRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), domain.ptr)
+function range_pop()
+    ccall((:nvtxRangePop, libnvToolsExt), Cint, ())
 end
+function range_pop(domain::Domain)
+    ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), domain.ptr)
+end
+
 
 """
     name_category([domain::Domain,] category::Integer, name::AbstractString)
@@ -189,13 +217,30 @@ function name_category(domain::Domain, category::Integer, name::AbstractString)
     (Ptr{Cvoid}, UInt32, Cstring), domain.ptr, category, name)
 end
 
+
+"""
+    name_os_thread(threadid::Integer, name::AbstractString)
+
+Attach a name to an operating system thread. `threadid` is the OS thread ID, returned by [`gettid`](@ref).
+"""
 function name_os_thread(threadid::Integer, name::AbstractString)
     ccall((:nvtxNameOsThreadA, libnvToolsExt), Cvoid,
         (UInt32, Cstring), threadid, name)
 end
 
-gettid() = ccall(:syscall, Cint, (Clong, Clong...), 186)
+@static if Sys.islinux() && Sys.ARCH == :x86_64
+    gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 186)
+elseif Sys.islinux() && Sys.ARCH == :aarch64
+    gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 178)
+elseif Sys.iswindows()
+    gettid() = ccall(:GetCurrentThreadId, UInt32,())
+end
 
+"""
+    name_threads_julia()
+
+Name the threads owned by the Julia process "julia thread 1", "julia thread 2", etc.
+"""
 function name_threads_julia()
     Threads.@threads :static for t = 1:Threads.nthreads()
         name_os_thread(gettid(), "julia thread $(Threads.threadid())")
