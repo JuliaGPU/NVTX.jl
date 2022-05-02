@@ -98,7 +98,7 @@ function EventAttributes(;
 
     EventAttributes(
         3,                        # version
-        sizeof(EventAttributes),  # size
+        fieldoffset(NVTX.EventAttributes, fieldcount(NVTX.EventAttributes)),  # size
         something(category, 0),   # category
         isnothing(color) ? 0 : 1, # colortype (1 = ARGB)
         something(color, 0),      # color
