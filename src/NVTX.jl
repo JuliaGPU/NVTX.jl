@@ -178,7 +178,7 @@ Must be completed with [`range_pop`](@ref).
 
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_push(domain::Domain; kwargs...)
+function range_push(; kwargs...)
     attr = EventAttributes(;kwargs...)
     ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
 end
