@@ -5,7 +5,7 @@ import Colors
 const libnvToolsExt = "libnvToolsExt"
 
 
-NSYS_ACTIVE = Ref{Bool}(false)
+const NSYS_ACTIVE = Ref{Bool}(false)
 
 function __init__()
     NSYS_ACTIVE[] = haskey(ENV, "NSYS_PROFILING_SESSION_ID")
