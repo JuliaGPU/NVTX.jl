@@ -25,6 +25,6 @@ end
 
 GC.gc()
 
-NVTX.mark(domain; message="mark 2", category=2, payload=1.2)
+NVTX.mark(domain; message=NVTX.StringHandle(domain, "mark 2"), category=2, payload=1.2)
 
 NVTX.range_end(outer_range)

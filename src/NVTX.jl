@@ -105,7 +105,7 @@ function EventAttributes(;
         payloadtype(payload),     # payloadtype
         0,                        # reserved0
         payloadval(payload),      # payload
-        isnothing(message) ? 0 : message isa StringHandle ? 2 : 1,      # messagetype
+        isnothing(message) ? 0 : message isa StringHandle ? 3 : 1,      # messagetype
         isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
         message,
     )
@@ -268,8 +268,8 @@ end
 Add NVTX hooks for the Julia garbage collector.
 """
 function enable_gc_hooks(domain=Domain("Julia"); message=StringHandle(domain, "GC"), color=Colors.colorant"brown", kwargs...)
-    #GC_DOMAIN[] = domain
-    #GC_ATTR[] = EventAttributes(;message, color, kwargs...)
+    GC_DOMAIN[] = domain
+    GC_ATTR[] = EventAttributes(;message, color, kwargs...)
     ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
         @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
     ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
