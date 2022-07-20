@@ -267,7 +267,7 @@ end
 Add NVTX hooks for the Julia garbage collector.
 """
 function enable_gc_hooks()
-    if GC_DOMAIN[].ptr != C_NULL
+    if GC_DOMAIN[].ptr == C_NULL
         GC_DOMAIN[] = Domain("Julia GC")
         ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
             @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
