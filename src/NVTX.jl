@@ -254,11 +254,11 @@ const GC_ATTR = Ref(EventAttributes())
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), GC_ATTR)
+    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), GC_DOMAIN[].ptr, GC_ATTR)
     return nothing
 end
 function gc_cb_post(full::Cint)
-    ccall((:nvtxRangePop, libnvToolsExt), Cint, ())
+    ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), GC_DOMAIN[].ptr)
     return nothing
 end
 
@@ -270,6 +270,7 @@ Add NVTX hooks for the Julia garbage collector.
 function enable_gc_hooks()
     if GC_DOMAIN[].ptr == C_NULL
         GC_DOMAIN[] = Domain("Julia GC")
+        GC_ATTR[] = EventAttributes(;message="gc",color=colorant"brown")
         ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
             @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
         ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
