@@ -4,7 +4,7 @@ using Colors
 
 @assert NVTX.isactive()
 
-range_gc()
+NVTX.range_gc()
 
 NVTX.name_threads_julia()
 
