@@ -263,19 +263,17 @@ function gc_cb_post(full::Cint)
 end
 
 """
-    NVTX.enable_gc_hooks()
+    NVTX.enable_gc_hooks(domain=Domain("Julia"), message="GC")
 
 Add NVTX hooks for the Julia garbage collector.
 """
-function enable_gc_hooks()
-    if GC_DOMAIN[].ptr == C_NULL
-        GC_DOMAIN[] = Domain("Julia GC")
-        GC_ATTR[] = EventAttributes(;message="gc",color=colorant"brown")
-        ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
-            @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
-        ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
-            @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
-    end
+function enable_gc_hooks(domain=Domain("Julia"); message=StringHandle(domain, "GC"), color=Colors.colorant"brown", kwargs...)
+    GC_DOMAIN[] = domain
+    GC_ATTR[] = EventAttributes(;message, color, kwargs...)
+    ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
+    ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
 end
 
 
