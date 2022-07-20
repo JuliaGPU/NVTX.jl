@@ -248,7 +248,23 @@ function name_threads_julia()
 end
 
 
+const GC_DOMAIN = Ref(Domain(C_NULL))
 
+function gc_cb_pre(full::Cint)
+    range_push(GC_DOMAIN[]; payload=full)
+    return nothing
+end
+function gc_cb_post(full::Cint)
+    range_pop(GC_DOMAIN[])
+    return nothing
+end
+function range_gc()
+    GC_DOMAIN[] = Domain("Julia GC")
+    ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
+    ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
+end
 
 
 end # module
