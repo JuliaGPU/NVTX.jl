@@ -105,7 +105,7 @@ function EventAttributes(;
         payloadtype(payload),     # payloadtype
         0,                        # reserved0
         payloadval(payload),      # payload
-        isnothing(message) ? 0 : message isa StringHandle ? 2 : 1,      # messagetype
+        isnothing(message) ? 0 : message isa StringHandle ? 3 : 1,      # messagetype
         isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
         message,
     )
@@ -248,7 +248,33 @@ function name_threads_julia()
 end
 
 
+const GC_DOMAIN = Ref(Domain(C_NULL))
+const GC_ATTR = Ref(EventAttributes())
 
+function gc_cb_pre(full::Cint)
+    # ideally we would pass `full` as a payload, but this causes allocations and
+    # causes a problem when testing with threads
+    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), GC_DOMAIN[].ptr, GC_ATTR)
+    return nothing
+end
+function gc_cb_post(full::Cint)
+    ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), GC_DOMAIN[].ptr)
+    return nothing
+end
+
+"""
+    NVTX.enable_gc_hooks(domain=Domain("Julia"), message="GC")
+
+Add NVTX hooks for the Julia garbage collector.
+"""
+function enable_gc_hooks(domain=Domain("Julia"); message=StringHandle(domain, "GC"), color=Colors.colorant"brown", kwargs...)
+    GC_DOMAIN[] = domain
+    GC_ATTR[] = EventAttributes(;message, color, kwargs...)
+    ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
+    ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
+end
 
 
 end # module

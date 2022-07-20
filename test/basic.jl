@@ -4,6 +4,8 @@ using Colors
 
 @assert NVTX.isactive()
 
+
+NVTX.enable_gc_hooks()
 NVTX.name_threads_julia()
 
 domain = NVTX.Domain("Custom domain")
@@ -21,6 +23,8 @@ Threads.@threads for i = 1:5
     NVTX.range_pop(domain)
 end
 
-NVTX.mark(domain; message="mark 2", category=2, payload=1.2)
+GC.gc()
+
+NVTX.mark(domain; message=NVTX.StringHandle(domain, "mark 2"), category=2, payload=1.2)
 
 NVTX.range_end(outer_range)
