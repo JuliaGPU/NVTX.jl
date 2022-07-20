@@ -253,11 +253,11 @@ const GC_DOMAIN = Ref(Domain(C_NULL))
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    range_push(GC_DOMAIN[])
+    range_push()
     return nothing
 end
 function gc_cb_post(full::Cint)
-    range_pop(GC_DOMAIN[])
+    range_pop()
     return nothing
 end
 
