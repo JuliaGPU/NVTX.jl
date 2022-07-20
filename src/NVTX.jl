@@ -249,15 +249,16 @@ end
 
 
 const GC_DOMAIN = Ref(Domain(C_NULL))
+const GC_ATTR = Ref(EventAttributes())
 
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    range_push()
+    ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), GC_ATTR)
     return nothing
 end
 function gc_cb_post(full::Cint)
-    range_pop()
+    ccall((:nvtxRangePop, libnvToolsExt), Cint, ())
     return nothing
 end
 
