@@ -251,7 +251,7 @@ end
 const GC_DOMAIN = Ref(Domain(C_NULL))
 
 function gc_cb_pre(full::Cint)
-    range_push(GC_DOMAIN[]; payload=full)
+    range_push(GC_DOMAIN[])
     return nothing
 end
 function gc_cb_post(full::Cint)
