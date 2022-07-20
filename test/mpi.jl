@@ -2,7 +2,7 @@ using MPI, NVTX
 
 MPI.Init()
 
-NVTX.range_gc()
+NVTX.enable_gc_hooks()
 
 outer_range = NVTX.range_start()
 

@@ -251,6 +251,8 @@ end
 const GC_DOMAIN = Ref(Domain(C_NULL))
 
 function gc_cb_pre(full::Cint)
+    # ideally we would pass `full` as a payload, but this causes allocations and
+    # causes a problem when testing with threads
     range_push(GC_DOMAIN[])
     return nothing
 end
@@ -258,12 +260,20 @@ function gc_cb_post(full::Cint)
     range_pop(GC_DOMAIN[])
     return nothing
 end
-function range_gc()
-    GC_DOMAIN[] = Domain("Julia GC")
-    ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
-        @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
-    ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
-        @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
+
+"""
+    NVTX.enable_gc_hooks()
+
+Add NVTX hooks for the Julia garbage collector.
+"""
+function enable_gc_hooks()
+    if GC_DOMAIN[].ptr != C_NULL
+        GC_DOMAIN[] = Domain("Julia GC")
+        ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
+            @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
+        ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
+            @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
+    end
 end
 
 
