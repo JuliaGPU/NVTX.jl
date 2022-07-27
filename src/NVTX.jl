@@ -125,16 +125,16 @@ Optional keyword arguments:
 - `payload`: a 32- or 64-bit integer or floating point number
 - `category`: a positive integer. See [`name_category`](@ref).
 """
-function mark(;kwargs...)
-    attr = EventAttributes(;kwargs...)
+function mark(attr::EventAttributes)
     ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
         (Ptr{EventAttributes},), Ref(attr))
 end
-function mark(domain::Domain; kwargs...)
-    attr = EventAttributes(;kwargs...)
+function mark(domain::Domain, attr::EventAttributes)
     ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
     (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
 end
+mark(;kwargs...) = mark(EventAttributes(;kwargs...))
+mark(domain::Domain; kwargs...) = mark(domain, EventAttributes(;kwargs...))
 
 
 primitive type RangeId 64 end
@@ -148,14 +148,14 @@ Returns a `RangeId` value, which should be passed to [`range_end`](@ref).
 
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_start(; kwargs...)
-    attr = EventAttributes(;kwargs...)
+function range_start(attr::EventAttributes)
     ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
 end
-function range_start(domain::Domain; kwargs...)
-    attr = EventAttributes(;kwargs...)
+function range_start(domain::Domain, attr::EventAttributes)
     ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
 end
+range_start(; kwargs...) = range_start(EventAttributes(;kwargs...))
+range_start(domain::Domain; kwargs...) = range_start(domain, EventAttributes(;kwargs...))
 
 """
     NVTX.range_end(range::RangeId)
@@ -173,19 +173,16 @@ Starts a nested thread range. Returns the 0-based level of range being started (
 
 Must be completed with [`range_pop`](@ref).
 
-!!! note
-    This does not appear to work correctly.
-
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_push(; kwargs...)
-    attr = EventAttributes(;kwargs...)
+function range_push(attr::EventAttributes)
     ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
 end
-function range_push(domain::Domain; kwargs...)
-    attr = EventAttributes(;kwargs...)
+function range_push(domain::Domain, attr::EventAttributes)
     ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
 end
+range_push(; kwargs...) = range_push(EventAttributes(;kwargs...))
+range_push(domain::Domain; kwargs...) = range_push(domain, EventAttributes(;kwargs...))
 
 """
     range_pop([domain::Domain])
@@ -254,11 +251,11 @@ const GC_ATTR = Ref(EventAttributes())
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), GC_DOMAIN[].ptr, GC_ATTR)
+    range_push(GC_DOMAIN[], GC_ATTR[])
     return nothing
 end
 function gc_cb_post(full::Cint)
-    ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), GC_DOMAIN[].ptr)
+    range_pop(GC_DOMAIN[])
     return nothing
 end
 
