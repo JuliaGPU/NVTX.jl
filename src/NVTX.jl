@@ -60,7 +60,6 @@ struct EventAttributes
     payload::UInt64
     messagetype::Int32
     message::Ptr{Cvoid}
-    messageref # for GC
 end
 
 payloadtype(::Nothing) = 0
@@ -107,7 +106,6 @@ function EventAttributes(;
         payloadval(payload),      # payload
         isnothing(message) ? 0 : message isa StringHandle ? 3 : 1,      # messagetype
         isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
-        message,
     )
 end
 
