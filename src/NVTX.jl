@@ -261,7 +261,7 @@ const GC_ATTR = Ref(event_attributes()[1])
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    range_push(GC_DOMAIN[], GC_ATTR[])
+    range_push(GC_DOMAIN[]; category=reinterpret(UInt32, full))
     return nothing
 end
 function gc_cb_post(full::Cint)
