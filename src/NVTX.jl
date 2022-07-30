@@ -81,7 +81,7 @@ payloadval(payload::Int32) = UInt64(reinterpret(UInt32,payload))
 payloadval(payload::Float32) = UInt64(reinterpret(UInt32,payload))
 
 
-function EventAttributes(;
+function event_attributes(;
     message=nothing,
     color=nothing,
     category=nothing,
@@ -106,7 +106,7 @@ function EventAttributes(;
         payloadval(payload),      # payload
         isnothing(message) ? 0 : message isa StringHandle ? 3 : 1,      # messagetype
         isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
-    )
+    ), message
 end
 
 """
@@ -123,16 +123,20 @@ Optional keyword arguments:
 - `payload`: a 32- or 64-bit integer or floating point number
 - `category`: a positive integer. See [`name_category`](@ref).
 """
-function mark(attr::EventAttributes)
-    ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
-        (Ptr{EventAttributes},), Ref(attr))
+function mark(attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
+            (Ptr{EventAttributes},), Ref(attr))
+    end
 end
-function mark(domain::Domain, attr::EventAttributes)
-    ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
-    (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+function mark(domain::Domain, attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
+        (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    end
 end
-mark(;kwargs...) = mark(EventAttributes(;kwargs...))
-mark(domain::Domain; kwargs...) = mark(domain, EventAttributes(;kwargs...))
+mark(;kwargs...) = mark(event_attributes(;kwargs...)...)
+mark(domain::Domain; kwargs...) = mark(domain, event_attributes(;kwargs...)...)
 
 
 primitive type RangeId 64 end
@@ -146,14 +150,18 @@ Returns a `RangeId` value, which should be passed to [`range_end`](@ref).
 
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_start(attr::EventAttributes)
-    ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+function range_start(attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+    end
 end
-function range_start(domain::Domain, attr::EventAttributes)
-    ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+function range_start(domain::Domain, attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    end
 end
-range_start(; kwargs...) = range_start(EventAttributes(;kwargs...))
-range_start(domain::Domain; kwargs...) = range_start(domain, EventAttributes(;kwargs...))
+range_start(; kwargs...) = range_start(event_attributes(;kwargs...)...)
+range_start(domain::Domain; kwargs...) = range_start(domain, event_attributes(;kwargs...)...)
 
 """
     NVTX.range_end(range::RangeId)
@@ -173,14 +181,18 @@ Must be completed with [`range_pop`](@ref).
 
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_push(attr::EventAttributes)
-    ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
+function range_push(attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
+    end
 end
-function range_push(domain::Domain, attr::EventAttributes)
-    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+function range_push(domain::Domain, attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    end
 end
-range_push(; kwargs...) = range_push(EventAttributes(;kwargs...))
-range_push(domain::Domain; kwargs...) = range_push(domain, EventAttributes(;kwargs...))
+range_push(; kwargs...) = range_push(event_attributes(;kwargs...)...)
+range_push(domain::Domain; kwargs...) = range_push(domain, event_attributes(;kwargs...)...)
 
 """
     range_pop([domain::Domain])
@@ -244,7 +256,7 @@ end
 
 
 const GC_DOMAIN = Ref(Domain(C_NULL))
-const GC_ATTR = Ref(EventAttributes())
+const GC_ATTR = Ref(event_attributes()[1])
 
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
@@ -264,7 +276,7 @@ Add NVTX hooks for the Julia garbage collector.
 """
 function enable_gc_hooks(domain=Domain("Julia"); message=StringHandle(domain, "GC"), color=Colors.colorant"brown", kwargs...)
     GC_DOMAIN[] = domain
-    GC_ATTR[] = EventAttributes(;message, color, kwargs...)
+    GC_ATTR[] = event_attributes(;message, color, kwargs...)[1]
     ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
         @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
     ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
