@@ -23,7 +23,8 @@ Threads.@threads for i = 1:5
     NVTX.range_pop(domain)
 end
 
-GC.gc()
+GC.gc(false)
+GC.gc(true)
 
 NVTX.mark(domain; message=NVTX.StringHandle(domain, "mark 2"), category=2, payload=1.2)
 

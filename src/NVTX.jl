@@ -41,6 +41,14 @@ struct StringHandle
     ptr::Ptr{Cvoid}
 end
 
+"""
+    StringHandle(domain::NVTX.Domain, string::AbstractString)
+
+Register `string` with `domain`, returning a `StringHandle` object.
+
+Registered strings are intended to increase performance by lowering
+instrumentation overhead.
+"""
 function StringHandle(domain::Domain, string::AbstractString)
     StringHandle(ccall((:nvtxDomainRegisterStringA, libnvToolsExt), Ptr{Cvoid},
         (Ptr{Cvoid},Cstring), domain.ptr, string))
@@ -60,7 +68,6 @@ struct EventAttributes
     payload::UInt64
     messagetype::Int32
     message::Ptr{Cvoid}
-    messageref # for GC
 end
 
 payloadtype(::Nothing) = 0
@@ -82,7 +89,7 @@ payloadval(payload::Int32) = UInt64(reinterpret(UInt32,payload))
 payloadval(payload::Float32) = UInt64(reinterpret(UInt32,payload))
 
 
-function EventAttributes(;
+function event_attributes(;
     message=nothing,
     color=nothing,
     category=nothing,
@@ -107,8 +114,7 @@ function EventAttributes(;
         payloadval(payload),      # payload
         isnothing(message) ? 0 : message isa StringHandle ? 3 : 1,      # messagetype
         isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
-        message,
-    )
+    ), message
 end
 
 """
@@ -125,16 +131,20 @@ Optional keyword arguments:
 - `payload`: a 32- or 64-bit integer or floating point number
 - `category`: a positive integer. See [`name_category`](@ref).
 """
-function mark(;kwargs...)
-    attr = EventAttributes(;kwargs...)
-    ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
-        (Ptr{EventAttributes},), Ref(attr))
+function mark(attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
+            (Ptr{EventAttributes},), Ref(attr))
+    end
 end
-function mark(domain::Domain; kwargs...)
-    attr = EventAttributes(;kwargs...)
-    ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
-    (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+function mark(domain::Domain, attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
+        (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    end
 end
+mark(;kwargs...) = mark(event_attributes(;kwargs...)...)
+mark(domain::Domain; kwargs...) = mark(domain, event_attributes(;kwargs...)...)
 
 
 primitive type RangeId 64 end
@@ -148,14 +158,18 @@ Returns a `RangeId` value, which should be passed to [`range_end`](@ref).
 
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_start(; kwargs...)
-    attr = EventAttributes(;kwargs...)
-    ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+function range_start(attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+    end
 end
-function range_start(domain::Domain; kwargs...)
-    attr = EventAttributes(;kwargs...)
-    ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+function range_start(domain::Domain, attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    end
 end
+range_start(; kwargs...) = range_start(event_attributes(;kwargs...)...)
+range_start(domain::Domain; kwargs...) = range_start(domain, event_attributes(;kwargs...)...)
 
 """
     NVTX.range_end(range::RangeId)
@@ -173,19 +187,20 @@ Starts a nested thread range. Returns the 0-based level of range being started (
 
 Must be completed with [`range_pop`](@ref).
 
-!!! note
-    This does not appear to work correctly.
-
 See [`mark`](@ref) for the keyword arguments.
 """
-function range_push(; kwargs...)
-    attr = EventAttributes(;kwargs...)
-    ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
+function range_push(attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
+    end
 end
-function range_push(domain::Domain; kwargs...)
-    attr = EventAttributes(;kwargs...)
-    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+function range_push(domain::Domain, attr::EventAttributes, msgref=nothing)
+    GC.@preserve msgref begin
+        ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    end
 end
+range_push(; kwargs...) = range_push(event_attributes(;kwargs...)...)
+range_push(domain::Domain; kwargs...) = range_push(domain, event_attributes(;kwargs...)...)
 
 """
     range_pop([domain::Domain])
@@ -249,16 +264,17 @@ end
 
 
 const GC_DOMAIN = Ref(Domain(C_NULL))
-const GC_ATTR = Ref(EventAttributes())
+const GC_MESSAGE = Ref(StringHandle(C_NULL))
+const GC_COLOR = Ref(UInt32(0))
 
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), GC_DOMAIN[].ptr, GC_ATTR)
+    range_push(GC_DOMAIN[]; category=reinterpret(UInt32, full), message=GC_MESSAGE[], color=GC_COLOR[])
     return nothing
 end
 function gc_cb_post(full::Cint)
-    ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), GC_DOMAIN[].ptr)
+    range_pop(GC_DOMAIN[])
     return nothing
 end
 
@@ -267,9 +283,15 @@ end
 
 Add NVTX hooks for the Julia garbage collector.
 """
-function enable_gc_hooks(domain=Domain("Julia"); message=StringHandle(domain, "GC"), color=Colors.colorant"brown", kwargs...)
+function enable_gc_hooks(domain=Domain("Julia"); message="GC", color=Colors.colorant"brown", kwargs...)
     GC_DOMAIN[] = domain
-    GC_ATTR[] = EventAttributes(;message, color, kwargs...)
+    GC_MESSAGE[] = StringHandle(domain, message)
+    if color isa Colors.Colorant
+        color = Colors.ARGB32(color).color
+    end
+    GC_COLOR[] = color
+    name_category(domain, 0, "partial")
+    name_category(domain, 1, "full")
     ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
         @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
     ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
