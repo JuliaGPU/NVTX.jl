@@ -41,6 +41,14 @@ struct StringHandle
     ptr::Ptr{Cvoid}
 end
 
+"""
+    StringHandle(domain::NVTX.Domain, string::AbstractString)
+
+Register `string` with `domain`, returning a `StringHandle` object.
+
+Registered strings are intended to increase performance by lowering
+instrumentation overhead.
+"""
 function StringHandle(domain::Domain, string::AbstractString)
     StringHandle(ccall((:nvtxDomainRegisterStringA, libnvToolsExt), Ptr{Cvoid},
         (Ptr{Cvoid},Cstring), domain.ptr, string))
@@ -256,12 +264,13 @@ end
 
 
 const GC_DOMAIN = Ref(Domain(C_NULL))
-const GC_ATTR = Ref(event_attributes()[1])
+const GC_MESSAGE = Ref(StringHandle(C_NULL))
+const GC_COLOR = Ref(UInt32(0))
 
 function gc_cb_pre(full::Cint)
     # ideally we would pass `full` as a payload, but this causes allocations and
     # causes a problem when testing with threads
-    range_push(GC_DOMAIN[]; category=reinterpret(UInt32, full))
+    range_push(GC_DOMAIN[]; category=reinterpret(UInt32, full), message=GC_MESSAGE[], color=GC_COLOR[])
     return nothing
 end
 function gc_cb_post(full::Cint)
@@ -274,9 +283,15 @@ end
 
 Add NVTX hooks for the Julia garbage collector.
 """
-function enable_gc_hooks(domain=Domain("Julia"); message=StringHandle(domain, "GC"), color=Colors.colorant"brown", kwargs...)
+function enable_gc_hooks(domain=Domain("Julia"); message="GC", color=Colors.colorant"brown", kwargs...)
     GC_DOMAIN[] = domain
-    GC_ATTR[] = event_attributes(;message, color, kwargs...)[1]
+    GC_MESSAGE[] = StringHandle(domain, message)
+    if color isa Colors.Colorant
+        color = Colors.ARGB32(color).color
+    end
+    GC_COLOR[] = color
+    name_category(domain, 0, "partial")
+    name_category(domain, 1, "full")
     ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
         @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
     ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
