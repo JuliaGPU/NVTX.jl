@@ -265,6 +265,8 @@ end
 
 const GC_DOMAIN = Ref(Domain(C_NULL))
 const GC_MESSAGE = Ref(StringHandle(C_NULL))
+const GC_ALLOC_MESSAGE = Ref(StringHandle(C_NULL))
+const GC_FREE_MESSAGE = Ref(StringHandle(C_NULL))
 const GC_COLOR = Ref(UInt32(0))
 
 function gc_cb_pre(full::Cint)
@@ -278,14 +280,25 @@ function gc_cb_post(full::Cint)
     return nothing
 end
 
+function gc_cb_alloc(ptr::Ptr{Cvoid}, size::Csize_t)
+    mark(GC_DOMAIN[]; message=GC_ALLOC_MESSAGE[], payload=size)
+    return nothing
+end
+function gc_cb_free(ptr::Ptr{Cvoid})
+    mark(GC_DOMAIN[]; message=GC_FREE_MESSAGE[])
+    return nothing
+end
+
 """
     NVTX.enable_gc_hooks(domain=Domain("Julia"), message="GC")
 
 Add NVTX hooks for the Julia garbage collector.
 """
-function enable_gc_hooks(domain=Domain("Julia"); message="GC", color=Colors.colorant"brown", kwargs...)
+function enable_gc_hooks(domain=Domain("Julia"); alloc_message="alloc", free_message="free", message="GC", color=Colors.colorant"brown", kwargs...)
     GC_DOMAIN[] = domain
     GC_MESSAGE[] = StringHandle(domain, message)
+    GC_ALLOC_MESSAGE[] = StringHandle(domain, alloc_message)
+    GC_FREE_MESSAGE[] = StringHandle(domain, free_message)
     if color isa Colors.Colorant
         color = Colors.ARGB32(color).color
     end
@@ -296,6 +309,10 @@ function enable_gc_hooks(domain=Domain("Julia"); message="GC", color=Colors.colo
         @cfunction(gc_cb_pre, Cvoid, (Cint,)), true)
     ccall(:jl_gc_set_cb_post_gc, Cvoid, (Ptr{Cvoid}, Cint),
         @cfunction(gc_cb_post, Cvoid, (Cint,)), true)
+    ccall(:jl_gc_set_cb_notify_external_alloc, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_alloc, Cvoid, (Ptr{Cvoid},Csize_t)), true)
+    ccall(:jl_gc_set_cb_notify_external_free, Cvoid, (Ptr{Cvoid}, Cint),
+        @cfunction(gc_cb_free, Cvoid, (Ptr{Cvoid},)), true)
 end
 
 
