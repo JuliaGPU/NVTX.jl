@@ -25,7 +25,14 @@ which will generate one report for the whole run, or outside
 ```
 mpiexec -n 2 nsys profile --trace=nvtx,mpi --mpi-impl=openmpi --output=report.%q{OMPI_COMM_WORLD_RANK} julia --project mpi.jl
 ```
-which will generate a report for each MPI process, and can be opened as a "multi-report view".
+which will generate a report for each MPI process, and can be opened as a "multi-report view". 
+
+
+#### Notes
+The compiler itself has some overhead: this is only visible in the report if using the launcher outside the `nsys` call.
+
+Overhead can be reduced by allocating an additional CPU core per MPI process for the profiler (e.g. via the `--cpus-per-task` option in Slurm). To ensure that these are scheduled correctly, it is best to "bind" the CPU cores per task. If launching using `srun`, then use the `--cpu-bind=cores`; if launching using Open MPI `mpiexec`, use `--map-by node:PE=$cpus_per_task --bind-to core`.
+
 
 #### Example
 
