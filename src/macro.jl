@@ -32,39 +32,33 @@ macro domain(mod)
     if !isdefined(mod, :__nvtx_domain__)
         @eval(mod, const __nvtx_domain__ = $(Domain()))
     end
-    quote
-        init!($mod.__nvtx_domain__, $(string(mod)))
-    end
+    :(init!($mod.__nvtx_domain__, $(string(mod))))
 end
 
-macro message(dom,msg)
-    msg
-end
-
-macro message(dom, msg::String)
+macro message(dom, msg)
     sh = StringHandle()
-    quote
-        init!($sh, $dom, $msg)
-    end
+    :(init!($sh, $dom, $(esc(msg))))
 end
 
 macro mark(msg)
+    strmsg = msg isa String ? :(@message(domain, $msg)) : esc(msg)
     quote
-        active = NVTX.isactive()
+        active = isactive()
         if active
             domain = @domain($__module__)
-            mark(domain; message=@message(domain, $msg))
+            mark(domain; message=$strmsg)
         end
     end
 end
 
 
 macro range(msg, expr)
+    strmsg = msg isa String ? :(@message(domain, $msg)) : esc(msg)
     quote
-        active = NVTX.isactive()
+        active = isactive()
         if active
             domain = @domain($__module__)
-            rangeid = range_start(domain; message=@message(domain, $msg))
+            rangeid = range_start(domain; message=$strmsg)
         end
         try
             $(esc(expr))
