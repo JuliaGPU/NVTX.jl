@@ -48,6 +48,17 @@ macro message(dom, msg::String)
     end
 end
 
+macro mark(msg)
+    quote
+        active = NVTX.isactive()
+        if active
+            domain = @domain($__module__)
+            mark(domain; message=@message(domain, $msg))
+        end
+    end
+end
+
+
 macro range(msg, expr)
     quote
         active = NVTX.isactive()

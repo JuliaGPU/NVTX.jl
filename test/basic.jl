@@ -38,3 +38,12 @@ end
 
 foo()
 foo()
+
+function bar()
+    for i = 1:3
+        NVTX.@range "bar $i" sleep(0.1)
+    end
+end
+
+bar()
+bar()
