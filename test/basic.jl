@@ -29,3 +29,12 @@ GC.gc(true)
 NVTX.mark(domain; message=NVTX.StringHandle(domain, "mark 2"), category=2, payload=1.2)
 
 NVTX.range_end(outer_range)
+
+function foo()
+    for i = 1:3
+        NVTX.@range "foo" sleep(0.1)
+    end
+end
+
+foo()
+foo()
