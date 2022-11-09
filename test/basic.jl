@@ -1,4 +1,4 @@
-using NVTX
+using NVTX, Test
 
 using Colors
 
@@ -37,6 +37,8 @@ function dostuff(x)
     end
 end
 end
+
+@test Domain(TestMod) === Domain(TestMod)
 
 TestMod.dostuff(1)
 TestMod.dostuff(2)
