@@ -1,8 +1,8 @@
 
 mutable struct Domain
     ptr::Ptr{Cvoid}
+    name::String
 end
-Domain() = Domain(C_NULL)
 
 function destroy(domain::Domain)
     ccall((:nvtxDomainDestroy, libnvToolsExt), Cvoid, (Ptr{Cvoid},), domain.ptr)
@@ -16,30 +16,27 @@ Construct a new NVTX domain with `name`.
 See [NVTX Domains](https://nvidia.github.io/NVTX/doxygen/index.html#DOMAINS).
 """
 function Domain(name::AbstractString)
-    init!(Domain(C_NULL), name)
+    domain = Domain(C_NULL, name)
+    if isactive()
+        init!(domain)
+    end
+    return domain
 end
 
-function init!(domain::Domain, name::AbstractString)
-    if domain.ptr == C_NULL
-        domain.ptr = ccall((:nvtxDomainCreateA,libnvToolsExt), Ptr{Cvoid}, (Cstring,), name)
+function init!(domain::Domain)
+    if domain.ptr == C_NULL && domain.name != ""
+        domain.ptr = ccall((:nvtxDomainCreateA,libnvToolsExt), Ptr{Cvoid}, (Cstring,), domain.name)
         finalizer(destroy, domain)
     end
     return domain
 end
 
-const DEFAULT_DOMAIN = Domain(C_NULL)
+const DEFAULT_DOMAIN = Domain(C_NULL,"")
 
 mutable struct StringHandle
     ptr::Ptr{Cvoid}
-end
-StringHandle() = StringHandle(C_NULL)
-
-function init!(sh::StringHandle, domain::Domain, string::AbstractString)
-    if sh.ptr == C_NULL
-        sh.ptr = ccall((:nvtxDomainRegisterStringA, libnvToolsExt), Ptr{Cvoid},
-            (Ptr{Cvoid},Cstring), domain.ptr, string)
-    end
-    return sh
+    domain::Domain
+    string::String
 end
 
 """
@@ -51,11 +48,21 @@ Registered strings are intended to increase performance by lowering
 instrumentation overhead.
 """
 function StringHandle(domain::Domain, string::AbstractString)
-    init!(StringHandle(), domain, string)
+    sh = StringHandle(C_NULL, domain, string)
+    if isactive()
+        init!(sh)
+    end
+    return sh
 end
-StringHandle(string::AbstractString) = StringHandle(DEFAULT_DOMAIN, string)
 
-
+function init!(sh::StringHandle)
+    if sh.ptr == C_NULL
+        init!(sh.domain)
+        sh.ptr = ccall((:nvtxDomainRegisterStringA, libnvToolsExt), Ptr{Cvoid},
+            (Ptr{Cvoid},Cstring), sh.domain.ptr, sh.string)
+    end
+    return sh
+end
 
 struct EventAttributes
     version::UInt16

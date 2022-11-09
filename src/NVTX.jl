@@ -6,17 +6,17 @@ const libnvToolsExt = "libnvToolsExt"
 
 
 const NSYS_ACTIVE = Ref{Bool}(false)
-isactive() = NSYS_ACTIVE[]
 
-const init_callbacks = []
+"""
+    NVTX.isactive()
+
+Determine if Nsight Systems profiling is currently active.
+"""
+isactive() = NSYS_ACTIVE[]
 
 function __init__()
     NSYS_ACTIVE[] = haskey(ENV, "NSYS_PROFILING_SESSION_ID")
-    for f in init_callbacks
-        f()
-    end
 end
-
 
 include("api.jl")
 include("julia.jl")

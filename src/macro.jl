@@ -1,135 +1,117 @@
-
-#=
-
-# idea: set default domain based on current module
-const DOMAIN_CACHE = Dict{Module,Domain}()
-
-function local_domain(mod::Module)
-    get!(DOMAINS, mod) do
-        Domain(string(domain))
-    end
-end
-=#
-#=
-
-NVTX.@range "message" color=... payload=... category=... expr
-
-- operate in a domain scoped to the current module
-- minimal overhead if NVTX is not active
-- either:
-  - lazily initialize
-  - or push to an initialization queue
-- use a StringHandle if message is a `String` (and not an expression)
-- have an option to use a non-default domain
-
-const custom_domain = NVTX.@domain "name"
-
-
-=#
-
-
-
-function defineconsts(mod)
-    if !isdefined(mod, :__nvtx_domain__)
-        domain = Domain()
-        @eval mod begin
-            const __nvtx_domain__ = $domain
-            const __nvtx_hooks__ = []
-        end
-        if isactive()
-            init!(domain, string(mod))
+# determine the domain and attributes for the macro call
+function domain_attrs(__module__, __source__, args)
+    domain = nothing
+    message = nothing
+    color = nothing
+    category = nothing
+    payload = nothing
+    # if not a keyword, first arg is the message
+    if length(args) >= 1
+        arg = args[1]
+        if !(arg isa Expr && arg.head == :(=))
+            message = args[1]
+            args = args[2:end]
         end
     end
-end
-definestring(dom, msg) = msg
-function definestring(dom, msg::String)
-    sh = StringHandle()
-    push!(__nvtx_hooks__, () -> init!(sh, dom, msg))
-    if isactive()
-        init!(sh, dom, msg)
-    end
-    return sh
-end
-
-macro init()
-    defineconsts(__module__)
-    quote
-        if isactive()
-            init!($__module__.__nvtx_domain__, $(string(__module__)))
-            while !isempty($__module__.__nvtx_hooks__)
-                f = popfirst!($__module__.__nvtx_hooks__)
-                f()
+    for arg in args
+        if !(arg isa Expr && arg.head == :(=))
+            error("$arg is not a keyword")
+        end
+        kw, val = arg.args
+        if kw == :domain && isnothing(domain)
+            domain = val
+        elseif kw == :message && isnothing(message)
+            message = val
+        elseif kw == :color && isnothing(color)
+            color = val
+        elseif kw == :category && isnothing(category)
+            category = val
+        elseif kw == :payload && isnothing(payload)
+            payload = val
+        else
+            if kw in [:domain, :message, :color, :category, :payload]
+                error("$kw already defined")
+            else
+                error("invalid keyword $kw")
             end
+        end
+    end
+    if isnothing(domain)
+        if !isdefined(__module__, :__nvtx_domain__)
+            @eval __module__ begin
+                const __nvtx_domain__ = $(Domain(string(__module__)))
+            end
+        end
+        domain = __module__.__nvtx_domain__
+    end
+    if isnothing(message)
+        message = "$(__source__.file):$(__source__.line)"
+    end
+    if isnothing(color)
+        # generate a unique color from the message
+        color = hash(message) % UInt32
+    end
+    if domain isa Domain && message isa String
+        # if domain and message are constant, using a StringHandle
+        message = :(init!($(StringHandle(domain, message))))
+    else
+        message = esc(message)
+    end
+    # lazily initialize the domain
+    domain = :(init!($(esc(domain))))
+    color = esc(color)
+    category = esc(category)
+    payload = esc(payload)
+    return domain, message, color, category, payload
+end
+
+"""
+    NVTX.@mark [message] [domain=...] [color=...] [category=...] [payload=...]
+
+Instruments an instantaneous event.
+
+ - `message` is a string. Default is to use `"file:lineno"``. String
+   interpolation is supported, but may incur overhead.
+ - `domain` is a [`Domain`](@ref). Default is to use the default domain of the
+   current module.
+ - `color` is either a `Colorant` from the Colors.jl package, or an `UInt32`
+   containing an ARGB32 value. Default is to generate one based on the hash of
+   the message.
+ - `category`: an integer describing the category of the event. Default is 0.
+ - `payload`: an optional integer (`Int32`, `UInt32`, `Int64`, `UInt64`) or
+   floating point (`Float32`, `Float64`) value to attach to the event.
+"""
+macro mark(args...)
+    domain, message, color, category, payload = domain_attrs(__module__, __source__, args)
+    quote
+        _isactive = isactive()
+        if _isactive
+            mark($domain; message=$message, color=$color, category=$category, payload=$payload)
         end
     end
 end
 
 """
-    @domain name
+    NVTX.@range [message] [domain=...] [color=...] [category=...] [payload=...] expr
 
-Define a new domain
+Instruments a range over the `expr`. See [`@mark`](@ref) for the other arguments.
 """
-macro domain(name::AbstractString)
-    defineconsts(mod)
-    dom = Domain()
-    init() = init!(dom, name)
-    push!(__module__.__nvtx_hooks__, init)
-    if isactive()
-        init()
-    end
-    return dom
-end
-
-macro string(domain, str)
-    defineconsts(mod)
-    if str isa AbstractString
-        _domain = domain
-        if domain isa Symbol && isconst(__module__, domain)
-            _domain = eval(__module, domain)
-        end
-        if _domain isa Domain
-            sh = StringHandle()
-            init() = init!(sh, _domain, str)
-            push!(__module__.__nvtx_hooks__, init)
-            if isactive()
-                init()
-            end
-            return sh
-        end
-    end
-    return esc(str)
-end
-
-macro domain()
-    :(@domain($__module__))
-end
-
-
-macro mark(msg)
-    defineconsts(__module__)
-    strmsg = msg isa String ? :(@message(domain, $msg)) : esc(msg)
+macro range(args...)
+    @assert length(args) >= 1
+    expr = args[end]
+    args = args[1:end-1]
+    domain, message, color, category, payload = domain_attrs(__module__, __source__, args)
     quote
-        active = isactive()
-        if active
-            domain = @domain($__module__)
-            mark(domain; message=$strmsg)
-        end
-    end
-end
-
-
-macro range(msg, expr)
-    strmsg = msg isa String ? :(@message(domain, $msg)) : esc(msg)
-    quote
-        active = isactive()
-        if active
-            domain = @domain($__module__)
-            rangeid = range_start(domain; message=$strmsg)
+        _isactive = isactive()
+        if _isactive
+            rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
         end
         try
             $(esc(expr))
         finally
-            range_end(rangeid)
+            if _isactive
+                range_end(rangeid)
+            end
         end
     end
 end

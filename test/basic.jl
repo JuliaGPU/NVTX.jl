@@ -26,24 +26,17 @@ end
 GC.gc(false)
 GC.gc(true)
 
-NVTX.mark(domain; message=NVTX.StringHandle(domain, "mark 2"), category=2, payload=1.2)
+module TestMod
+using NVTX
+function dostuff(x)
+    NVTX.@mark "a mark"
+    NVTX.@mark "mark $x" payload=x
 
-NVTX.range_end(outer_range)
-
-function foo()
-    for i = 1:3
-        NVTX.@range "foo" sleep(0.1)
+    NVTX.@range "sleeping" begin
+        sleep(0.3)
     end
 end
-
-foo()
-foo()
-
-function bar()
-    for i = 1:3
-        NVTX.@range "bar $i" sleep(0.1)
-    end
 end
 
-bar()
-bar()
+TestMod.dostuff(1)
+TestMod.dostuff(2)
