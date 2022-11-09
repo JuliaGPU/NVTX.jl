@@ -13,7 +13,7 @@ It can be loaded on any platform, even without the NVTX library, and so can safe
 
 ## Usage
 
-There are two convenience macros which can be used to annotate instrumentation for instantaneous events (`NVTX.@mark`) or ranges (`NVTX.@range`):
+There are two convenience macros which can be used to instrument instantaneous events (`NVTX.@mark`) or ranges (`NVTX.@range`):
 
 ```julia
 NVTX.@mark "my message"
