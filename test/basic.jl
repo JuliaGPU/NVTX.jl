@@ -38,7 +38,7 @@ function dostuff(x)
 end
 end
 
-@test Domain(TestMod) === Domain(TestMod)
+@test NVTX.Domain(TestMod) === NVTX.Domain(TestMod)
 
 TestMod.dostuff(1)
 TestMod.dostuff(2)
