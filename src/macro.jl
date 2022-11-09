@@ -1,3 +1,14 @@
+# Define the default domain for a module
+function Domain(__module__::Module)
+    if !isdefined(__module__, :__nvtx_domain__)
+        @eval __module__ begin
+            const __nvtx_domain__ = $(Domain(string(__module__)))
+        end
+    end
+    return __module__.__nvtx_domain__
+end
+
+
 # determine the domain and attributes for the macro call
 function domain_attrs(__module__, __source__, args)
     domain = nothing
@@ -37,12 +48,7 @@ function domain_attrs(__module__, __source__, args)
         end
     end
     if isnothing(domain)
-        if !isdefined(__module__, :__nvtx_domain__)
-            @eval __module__ begin
-                const __nvtx_domain__ = $(Domain(string(__module__)))
-            end
-        end
-        domain = __module__.__nvtx_domain__
+        domain = Domain(__module__)
     end
     if isnothing(message)
         message = "$(__source__.file):$(__source__.line)"
