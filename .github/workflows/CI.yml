@@ -7,13 +7,24 @@ on:
   pull_request:
 
 jobs:
-  test:
+  Linux:
+    strategy:
+      matrix:
+        julia_version:
+          - "1.6"
+          - "1"
+          - "nightly"
+
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
     - name: Install CUDA toolkit
       uses: Jimver/cuda-toolkit@v0.2.5
     - uses: actions/checkout@v2
     - uses: julia-actions/setup-julia@v1
+      with:
+        version: ${{ matrix.julia_version }}
+
     - uses: julia-actions/cache@v1
     - uses: julia-actions/julia-buildpkg@v1
     - uses: julia-actions/julia-runtest@v1
