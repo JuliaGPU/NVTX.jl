@@ -3,8 +3,6 @@ module NVTX
 import Colors
 
 const libnvToolsExt = "libnvToolsExt"
-
-
 const NSYS_ACTIVE = Ref{Bool}(false)
 
 """
