@@ -56,8 +56,14 @@ Add NVTX hooks for the Julia garbage collector:
  - `gc`: instrument GC invocations as ranges
  - `alloc`: instrument calls to alloc as marks (payload will contain size)
  - `free`: instrument calls to free as marks
+
+!!! warning "Support"
+    This function is not currently supported on Julia 1.9 or later.
 """
 function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
+    if VERSION >= v"1.9-"
+        error("GC callback hooks are not supported on Julia 1.9 or later")
+    end
     if gc || alloc || free
         init!(JULIA_DOMAIN)
     end

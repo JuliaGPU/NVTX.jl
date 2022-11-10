@@ -4,8 +4,9 @@ using Colors
 
 @assert NVTX.isactive()
 
-
-NVTX.enable_gc_hooks()
+if VERSION < v"1.9-"
+    NVTX.enable_gc_hooks()
+end
 NVTX.name_threads_julia()
 
 domain = NVTX.Domain("Custom domain")
