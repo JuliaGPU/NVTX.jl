@@ -1,6 +1,6 @@
 module NVTX
 
-import Colors
+import Colors, Libdl
 
 const libnvToolsExt = "libnvToolsExt"
 const NSYS_ACTIVE = Ref{Bool}(false)
