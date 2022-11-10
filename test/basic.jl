@@ -25,6 +25,7 @@ end
 
 GC.gc(false)
 GC.gc(true)
+NVTX.enable_gc_hooks(;gc=false)
 
 module TestMod
 using NVTX
@@ -42,3 +43,5 @@ end
 
 TestMod.dostuff(1)
 TestMod.dostuff(2)
+
+println("done")
