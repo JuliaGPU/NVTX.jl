@@ -55,12 +55,12 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
         name_category(JULIA_DOMAIN, 1, "full")
     end
     if alloc
-        unsafe_store!(cglobal((:gc_alloc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_ALLOC_MESSAGE.ptr)
         init!(GC_ALLOC_MESSAGE)
+        unsafe_store!(cglobal((:gc_alloc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_ALLOC_MESSAGE.ptr)
     end
     if free
-        unsafe_store!(cglobal((:gc_free_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_FREE_MESSAGE.ptr)
         init!(GC_FREE_MESSAGE)
+        unsafe_store!(cglobal((:gc_free_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_FREE_MESSAGE.ptr)
     end
 
     ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
