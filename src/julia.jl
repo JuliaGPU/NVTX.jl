@@ -60,9 +60,12 @@ Add NVTX hooks for the Julia garbage collector:
 function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     if gc || alloc || free
         init!(JULIA_DOMAIN)
+        unsafe_store!(cglobal((:julia_domain,libjulia_nvtx_cb),Ptr{Cvoid}), JULIA_DOMAIN.ptr)
+        unsafe_store!(cglobal((:gc_color,libjulia_nvtx_cb),UInt32), GC_COLOR[])
     end
     if gc
         init!(GC_MESSAGE)
+        unsafe_store!(cglobal((:gc_message,libjulia_nvtx_cb),Ptr{Cvoid}), GC_MESSAGE.ptr)
         name_category(JULIA_DOMAIN, 0, "partial")
         name_category(JULIA_DOMAIN, 1, "full")
     end
