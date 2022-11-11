@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 20
     steps:
     - name: Install CUDA toolkit
-      uses: Jimver/cuda-toolkit@v0.2.5
+      uses: Jimver/cuda-toolkit@v0.2.8
     - uses: actions/checkout@v2
     - uses: julia-actions/setup-julia@v1
       with:
