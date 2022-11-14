@@ -30,4 +30,5 @@ jobs:
     - uses: julia-actions/julia-runtest@v1
     - uses: actions/upload-artifact@v3
       with:
+        name: nsys-{{ matrix.julia_version }}
         path: output/
