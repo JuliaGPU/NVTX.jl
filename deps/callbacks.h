@@ -1,4 +1,4 @@
-#include <nvToolsExt.h>
+#include <nvtx3/nvToolsExt.h>
 
 extern nvtxDomainHandle_t julia_domain;
 extern nvtxStringHandle_t gc_message;
