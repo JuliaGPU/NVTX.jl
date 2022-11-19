@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include <nvToolsExt.h>
+#include <nvtx3/nvToolsExt.h>
 #include "callbacks.h"
 
 nvtxDomainHandle_t julia_domain = 0;
