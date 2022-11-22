@@ -15,16 +15,26 @@ jobs:
           - "1"
           - "nightly"
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     timeout-minutes: 40
     steps:
-    - name: Install CUDA toolkit
-      uses: Jimver/cuda-toolkit@v0.2.8
+      # based on https://github.com/pytorch/TensorRT/blob/10b9ecd488c10a79a19466df8509e7059ce27f02/.github/workflows/docgen.yml#L48-L64
+    - name: Install Nsight Systems
+      run: |
+        sudo apt-get update
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+        sudo mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
+        sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub
+        sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/3bf863cc.pub
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 536F8F1DE80F6A35
+        sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys A4B469963BF863CC
+        sudo add-apt-repository "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
+        sudo apt-get update
+        sudo apt-get install -y nsight-systems-2022.4.2
     - uses: actions/checkout@v2
     - uses: julia-actions/setup-julia@v1
       with:
         version: ${{ matrix.julia_version }}
-
     - uses: julia-actions/cache@v1
     - uses: julia-actions/julia-buildpkg@v1
     - uses: julia-actions/julia-runtest@v1

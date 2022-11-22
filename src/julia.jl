@@ -19,8 +19,6 @@ function name_threads_julia()
 end
 
 # domain used for instrumenting Julia runtime
-const libjulia_nvtx_callbacks = joinpath(@__DIR__, "..", "deps", "libjulia_nvtx_callbacks.$(Libdl.dlext)")
-
 const JULIA_DOMAIN = Domain("Julia")
 const GC_MESSAGE = StringHandle(JULIA_DOMAIN, "GC")
 const GC_ALLOC_MESSAGE = StringHandle(JULIA_DOMAIN, "alloc")
