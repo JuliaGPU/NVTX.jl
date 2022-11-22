@@ -28,7 +28,7 @@ jobs:
     - uses: julia-actions/julia-buildpkg@v1
     - uses: julia-actions/julia-runtest@v1
       env:
-        JULIA_NSYS: nsight-sys
+        JULIA_NSYS: /usr/lib/nsight-systems/Target-x86_64/x86_64/nsys
     - uses: actions/upload-artifact@v3
       with:
         name: nsys ${{ matrix.julia_version }}
