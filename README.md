@@ -26,7 +26,7 @@ These macros can safely be used if the profiler is not active, or not even insta
 
 To run the Nsight systems profiler, use
 ```
-nsys --trace=nvtx julia script.jl
+nsys profile julia script.jl
 ```
 
 ### Julia runtime
