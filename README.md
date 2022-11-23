@@ -6,10 +6,11 @@ Julia bindings to the [NVIDIA Tools Extension Library (NVTX)](https://nvidia.git
 
 ## Requirements
 
-This requires the NVTX library be installed, as well as [Nsight systems](https://docs.nvidia.com/nsight-systems/UserGuide/index.html).\
-Both are included in the [NVIDIA CUDA toolkit](https://developer.nvidia.com/cuda-toolkit) (no GPU is required). Currently only Linux is supported.
+NVTX.jl now bundles the NVTX library for supported platforms, however you will need to install the [NVIDIA Nsight Systems](https://developer.nvidia.com/nsight-systems) to actually run the profiler: it is available for Linux (x86_64, Aarch64, Power) and Windows (x86_64), and the resulting profiles can be viewed on Linux, Windows and MacOS.
 
-It can be loaded on any platform, even without the NVTX library, and so can safely be included as a dependency in other packages.
+Currently only x86_64 Linux has been tested, but other systems _should_ work.
+
+NVTX.jl can be loaded on any platform, even those without the NVTX library, and so can safely be included as a package dependency.
 
 ## Usage
 
@@ -24,10 +25,12 @@ end
 ```
 These macros can safely be used if the profiler is not active, or not even installed, and so are safe to include in package code.
 
-To run the Nsight systems profiler, use
+To run the Nsight Systems profiler, use
 ```
 nsys profile julia script.jl
 ```
+
+See [Nsight Systems User Manual](https://docs.nvidia.com/nsight-systems/UserGuide/index.html) for more information.
 
 ### Julia runtime
 
