@@ -2,8 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [master]
-    tags: ["*"]
+    branches:
+      - main
+    tags:
+      - "*"
   pull_request:
 
 jobs:
