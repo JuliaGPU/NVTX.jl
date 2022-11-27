@@ -49,8 +49,9 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     if gc
         init!(GC_MESSAGE)
         unsafe_store!(cglobal((:gc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_MESSAGE.ptr)
-        name_category(JULIA_DOMAIN, 0, "partial")
+        # https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia.h#L879-L883
         name_category(JULIA_DOMAIN, 1, "full")
+        name_category(JULIA_DOMAIN, 2, "incremental")
     end
     if alloc
         init!(GC_ALLOC_MESSAGE)

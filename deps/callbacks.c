@@ -8,6 +8,7 @@ nvtxStringHandle_t gc_alloc_message = 0;
 nvtxStringHandle_t gc_free_message = 0;
 uint32_t gc_color = 0;
 
+// https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia_gcext.h#L20-L22
 extern void nvtx_julia_gc_cb_pre(int full) {
   nvtxEventAttributes_t eventAttrib = {0};
   eventAttrib.version = NVTX_VERSION;
@@ -24,6 +25,7 @@ extern void nvtx_julia_gc_cb_post(int full) {
   nvtxDomainRangePop(julia_domain);
 }
 
+// https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia_gcext.h#L24-L26
 extern void nvtx_julia_gc_cb_alloc(void *ptr, size_t size) {
   nvtxEventAttributes_t eventAttrib = {0};
   eventAttrib.version = NVTX_VERSION;
