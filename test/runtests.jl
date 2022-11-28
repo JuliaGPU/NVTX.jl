@@ -63,8 +63,8 @@ julia_ranges = DataFrame(DBInterface.execute(db, """
     WHERE eventType = $NvtxPushPopRange AND domainId = $julia_domainId AND category IS NOT NULL
     ORDER BY start
     """))
-@test julia_ranges.text = ["GC" for i = 1:2]
-@test julia_ranges.category = [2, 1]
+@test julia_ranges.text == ["GC" for i = 1:2]
+@test julia_ranges.category == [2, 1]
 @test all(julia_ranges.color .== ARGB32(colorant"brown").color)
 
 julia_marks = DataFrame(DBInterface.execute(db, """
