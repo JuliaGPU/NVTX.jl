@@ -7,7 +7,7 @@ end
 
 nsys = get(ENV, "JULIA_NSYS", "nsys")
 
-run(`$nsys profile -e JULIA_NVTX_CALLBACKS=gc,alloc,free --output=$(joinpath(dirname, "basic")) --export=json,sqlite --trace=nvtx $(Base.julia_cmd()) --project=$(Base.active_project()) --threads=3 basic.jl`)
+run(`$nsys profile --output=$(joinpath(dirname, "basic")) --export=json,sqlite --trace=nvtx $(Base.julia_cmd()) --project=$(Base.active_project()) --threads=3 basic.jl`)
 
 using DataFrames, SQLite, DBInterface, Colors, Test
 
