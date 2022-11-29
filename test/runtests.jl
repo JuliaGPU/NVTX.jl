@@ -49,8 +49,8 @@ julia_categories = DataFrame(DBInterface.execute(db, """
     WHERE eventType = $NvtxCategory AND domainId = $julia_domainId
     ORDER BY category
     """))
-@test julia_categories.category == [1, 2]
-@test julia_categories.text == ["full", "incremental"]
+@test julia_categories.category == [1, 2, 3]
+@test julia_categories.text == ["auto", "full", "incremental"]
 
 julia_teststrs = DataFrame(DBInterface.execute(db, """
     SELECT *
@@ -68,7 +68,7 @@ julia_ranges = DataFrame(DBInterface.execute(db, """
 @test all(julia_ranges.color .== ARGB32(colorant"brown").color)
 
 julia_marks = DataFrame(DBInterface.execute(db, """
-    SELECT COALESCE(text, value) as text, sum(uint64Value) as alloc
+    SELECT COALESCE(text, value) as text, sum(uint64Value) as alloc, color
     FROM NVTX_EVENTS
     LEFT JOIN StringIds on textId == id
     WHERE eventType = $NvtxMark AND domainId = $julia_domainId
@@ -76,6 +76,7 @@ julia_marks = DataFrame(DBInterface.execute(db, """
     """))
 @test julia_marks.text == ["alloc", "free"]
 @test julia_marks.alloc[1] > 0
+@test julia_marks.color == [Colors.ARGB32(Colors.colorant"goldenrod1").color, Colors.ARGB32(Colors.colorant"dodgerblue").color]
 
 # TestMod Domain
 testmod_ranges = DataFrame(DBInterface.execute(db, """
