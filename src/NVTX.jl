@@ -13,7 +13,17 @@ Determine if Nsight Systems profiling is currently active.
 isactive() = NSYS_ACTIVE[]
 
 function __init__()
-    NSYS_ACTIVE[] = haskey(ENV, "NSYS_PROFILING_SESSION_ID")
+    if haskey(ENV, "NSYS_PROFILING_SESSION_ID")
+        NSYS_ACTIVE[] = true
+        initialize()
+        name_threads_julia()
+        callbacks = split(get(ENV, "JULIA_NVTX_CALLBACKS", ""), [',','|'])
+        enable_gc_hooks(;
+            gc="gc" in callbacks,
+            alloc="alloc" in callbacks,
+            free="free" in callbacks
+        )
+    end
 end
 
 include("api.jl")

@@ -1,4 +1,16 @@
 
+"""
+    initialize()
+
+Force NVTX library to initialize. The first call to any NVTX API function will
+automatically initialize the entire API. This can make the first call much
+slower than subsequent calls.
+"""
+function initialize()
+    ccall((:nvtxInitialize, libnvToolsExt), Cvoid, (Ptr{Cvoid},), C_NULL)
+end
+
+
 mutable struct Domain
     ptr::Ptr{Cvoid}
     name::String
