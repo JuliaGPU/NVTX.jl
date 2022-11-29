@@ -1,8 +1,12 @@
 # convenience functions for using Julia
-@static if Sys.islinux() && Sys.ARCH == :x86_64
-    gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 186)
-elseif Sys.islinux() && Sys.ARCH == :aarch64
-    gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 178)
+@static if Sys.islinux()
+    if Sys.ARCH == :x86_64
+        gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 186)
+    elseif Sys.ARCH == :aarch64
+        gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 178)
+    elseif Sys.ARCH == :powerpc64le || Sys.ARCH == :ppc64le
+        gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 207)
+    end
 elseif Sys.iswindows()
     gettid() = ccall(:GetCurrentThreadId, UInt32,())
 end
