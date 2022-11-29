@@ -60,11 +60,11 @@ julia_ranges = DataFrame(DBInterface.execute(db, """
     SELECT COALESCE(text, value) as text, category, color
     FROM NVTX_EVENTS
     LEFT JOIN StringIds on textId == id
-    WHERE eventType = $NvtxPushPopRange AND domainId = $julia_domainId AND category IS NOT NULL
+    WHERE eventType = $NvtxPushPopRange AND domainId = $julia_domainId AND category > 1
     ORDER BY start
-    """))
+    """)) # exclude auto GC
 @test julia_ranges.text == ["GC" for i = 1:2]
-@test julia_ranges.category == [2, 1]
+@test julia_ranges.category == [3, 2]
 @test all(julia_ranges.color .== ARGB32(colorant"brown").color)
 
 julia_marks = DataFrame(DBInterface.execute(db, """
