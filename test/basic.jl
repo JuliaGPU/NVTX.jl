@@ -31,10 +31,17 @@ function dostuff(x)
     NVTX.@range "sleeping" begin
         sleep(0.3)
     end
+
 end
+
+NVTX.@annotate function dostuff(x::Float64)
+    sleep(x)
+end
+
 end
 
 @test NVTX.Domain(TestMod) === NVTX.Domain(TestMod)
 
 TestMod.dostuff(1)
 TestMod.dostuff(2)
+TestMod.dostuff(0.3)
