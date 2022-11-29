@@ -7,6 +7,8 @@ nvtxStringHandle_t gc_message = 0;
 nvtxStringHandle_t gc_alloc_message = 0;
 nvtxStringHandle_t gc_free_message = 0;
 uint32_t gc_color = 0;
+uint32_t gc_alloc_color = 0;
+uint32_t gc_free_color = 0;
 
 // https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia_gcext.h#L20-L22
 extern void nvtx_julia_gc_cb_pre(int full) {
