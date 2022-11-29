@@ -9,8 +9,10 @@ function Domain(__module__::Module)
 end
 
 
+file_lineno(__source__) = "$(__source__.file):$(__source__.line)"
+
 # determine the domain and attributes for the macro call
-function domain_attrs(__module__, __source__, args)
+function domain_attrs(__module__, default_message, args)
     domain = nothing
     message = nothing
     color = nothing
@@ -51,7 +53,7 @@ function domain_attrs(__module__, __source__, args)
         domain = Domain(__module__)
     end
     if isnothing(message)
-        message = "$(__source__.file):$(__source__.line)"
+        message = default_message
     end
     if isnothing(color)
         # generate a unique color from the message
@@ -88,7 +90,7 @@ Instruments an instantaneous event.
    floating point (`Float32`, `Float64`) value to attach to the event.
 """
 macro mark(args...)
-    domain, message, color, category, payload = domain_attrs(__module__, __source__, args)
+    domain, message, color, category, payload = domain_attrs(__module__, file_lineno(__source__), args)
     quote
         _isactive = isactive()
         if _isactive
@@ -106,7 +108,7 @@ macro range(args...)
     @assert length(args) >= 1
     expr = args[end]
     args = args[1:end-1]
-    domain, message, color, category, payload = domain_attrs(__module__, __source__, args)
+    domain, message, color, category, payload = domain_attrs(__module__, file_lineno(__source__), args)
     quote
         _isactive = isactive()
         if _isactive
@@ -117,6 +119,42 @@ macro range(args...)
         finally
             if _isactive
                 range_end(rangeid)
+            end
+        end
+    end
+end
+
+"""
+    NVTX.@annotate [message] [domain=...] [color=...] [category=...] [payload=...] function ... end
+
+Instruments a range over the function definition. This is equivalent to calling
+[`@range`](@ref) within the body of the function.
+
+See [`@mark`](@ref) for the other arguments.
+"""
+macro annotate(args...)
+    @assert length(args) >= 1
+    expr = args[end]
+    args = args[1:end-1]
+    if expr.head in (:function, :(=)) && expr.args[1].head in (:call, :where)
+        fsig = expr.args[1]
+        body = expr.args[2]
+    else
+        error("NVTX.@annotate can only be applied to a function definition")
+    end
+    domain, message, color, category, payload = domain_attrs(__module__, "$fsig $(file_lineno(__source__))", args)
+    quote
+        $(esc(fsig)) = begin
+            _isactive = isactive()
+            if _isactive
+                rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
+            end
+            try
+                $(esc(body))
+            finally
+                if _isactive
+                    range_end(rangeid)
+                end
             end
         end
     end
