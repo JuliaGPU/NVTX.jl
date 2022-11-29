@@ -28,6 +28,8 @@ const GC_MESSAGE = StringHandle(JULIA_DOMAIN, "GC")
 const GC_ALLOC_MESSAGE = StringHandle(JULIA_DOMAIN, "alloc")
 const GC_FREE_MESSAGE = StringHandle(JULIA_DOMAIN, "free")
 const GC_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"brown").color)
+const GC_ALLOC_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"goldenrod1").color)
+const GC_FREE_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"dodgerblue").color)
 
 """
     NVTX.enable_gc_hooks(;gc=true, alloc=false, free=false)
@@ -48,12 +50,13 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     if gc || alloc || free
         init!(JULIA_DOMAIN)
         unsafe_store!(cglobal((:julia_domain,libjulia_nvtx_callbacks),Ptr{Cvoid}), JULIA_DOMAIN.ptr)
-        unsafe_store!(cglobal((:gc_color,libjulia_nvtx_callbacks),UInt32), GC_COLOR[])
     end
     if gc
         init!(GC_MESSAGE)
         unsafe_store!(cglobal((:gc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_MESSAGE.ptr)
+        unsafe_store!(cglobal((:gc_color,libjulia_nvtx_callbacks),UInt32), GC_COLOR[])
         # https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia.h#L879-L883
+        name_category(JULIA_DOMAIN, 1, "auto")
         name_category(JULIA_DOMAIN, 1, "full")
         name_category(JULIA_DOMAIN, 2, "incremental")
     end

@@ -19,7 +19,7 @@ extern void nvtx_julia_gc_cb_pre(int full) {
   eventAttrib.color = gc_color;
   eventAttrib.messageType = NVTX_MESSAGE_TYPE_REGISTERED;
   eventAttrib.message.registered = gc_message;
-  eventAttrib.category = (uint32_t) full;
+  eventAttrib.category = (uint32_t) (1 + full);
   nvtxDomainRangePushEx(julia_domain, &eventAttrib);
 }
 
