@@ -37,7 +37,9 @@ See [Nsight Systems User Manual](https://docs.nvidia.com/nsight-systems/UserGuid
 There are some additional functions for instrumenting the Julia runtime:
 
 - `NVTX.name_threads_julia()` will name the threads used by Julia using Julia's internal numbering (`julia thread 1`, `julia thread 2`, etc.)
+  - This is now called autoatically at initialization.
 - `NVTX.enable_gc_hooks()` will instrument the Julia garbage collector (GC).
+  - This can also be enabled by setting `JULIA_NVTX_CALLBACKS=gc`.
 
 These functions can only be called if the profiler is active. Use `NVTX.isactive()` to determine if this is the case.
 
