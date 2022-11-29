@@ -33,7 +33,7 @@ extern void nvtx_julia_gc_cb_alloc(void *ptr, size_t size) {
   eventAttrib.version = NVTX_VERSION;
   eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
   eventAttrib.colorType = NVTX_COLOR_ARGB;
-  eventAttrib.color = gc_color;
+  eventAttrib.color = gc_alloc_color;
   eventAttrib.messageType = NVTX_MESSAGE_TYPE_REGISTERED;
   eventAttrib.message.registered = gc_alloc_message;
   eventAttrib.payloadType = NVTX_PAYLOAD_TYPE_UNSIGNED_INT64;
@@ -45,7 +45,7 @@ extern void nvtx_julia_gc_cb_free(void *ptr) {
   eventAttrib.version = NVTX_VERSION;
   eventAttrib.size = NVTX_EVENT_ATTRIB_STRUCT_SIZE;
   eventAttrib.colorType = NVTX_COLOR_ARGB;
-  eventAttrib.color = gc_color;
+  eventAttrib.color = gc_free_color;
   eventAttrib.messageType = NVTX_MESSAGE_TYPE_REGISTERED;
   eventAttrib.message.registered = gc_free_message;
   nvtxDomainMarkEx(julia_domain, &eventAttrib);
