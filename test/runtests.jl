@@ -72,9 +72,9 @@ custom_startend_ranges = DataFrame(DBInterface.execute(db, """
     WHERE eventType = $NvtxStartEndRange AND domainId = $custom_domainId
     ORDER BY payload
     """))
-@test custom_pushpop_ranges.text == ["outer range"]
-@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9 < 0.3
-@test ismissing(custom_pushpop_ranges.payload[1])
+@test custom_startend_ranges.text == ["outer range"]
+@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9 < 0.35
+@test ismissing(custom_startend_ranges.payload[1])
 
 
 # Julia Domain (GC)
