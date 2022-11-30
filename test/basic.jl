@@ -19,7 +19,7 @@ Threads.@threads for i = 1:5
     NVTX.range_pop(domain)
 end
 
-NVTX.range_stop(outer_range)
+NVTX.range_end(outer_range)
 
 GC.gc(false)
 GC.gc(true)
