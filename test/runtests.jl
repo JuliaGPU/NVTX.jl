@@ -42,6 +42,41 @@ custom_domainId  = df_domains.domainId[1]
 julia_domainId   = df_domains.domainId[2]
 testmod_domainId = df_domains.domainId[3]
 
+# Custom domain
+custom_categories = DataFrame(DBInterface.execute(db, """
+    SELECT category, text
+    FROM NVTX_EVENTS
+    WHERE eventType = $NvtxCategory AND domainId = $custom_domainId
+    ORDER BY category
+    """))
+@test custom_categories.category == [1, 2]
+@test custom_categories.text == ["boo", "blah"]
+
+custom_pushpop_ranges = DataFrame(DBInterface.execute(db, """
+    SELECT start, end-start as time_ns, COALESCE(text, value) as text, globalTid, COALESCE(uint64Value, int64Value, doubleValue, uint32Value, int32Value, floatValue) as payload
+    FROM NVTX_EVENTS
+    LEFT JOIN StringIds on textId == id
+    WHERE eventType = $NvtxPushPopRange AND domainId = $custom_domainId
+    ORDER BY payload
+    """))
+
+@test custom_pushpop_ranges.text == ["inner range" for _ = 1:5]
+@test custom_pushpop_ranges.payload == 1:5
+@test all(time_ns -> 0.1 < time_ns/10^9 < 0.15, custom_pushpop_ranges.time_ns)
+@test length(unique(custom_pushpop_ranges.globalTid)) == 3
+
+custom_startend_ranges = DataFrame(DBInterface.execute(db, """
+    SELECT start, end-start as time_ns, COALESCE(text, value) as text, globalTid, endGlobalTid, COALESCE(uint64Value, int64Value, doubleValue, uint32Value, int32Value, floatValue) as payload
+    FROM NVTX_EVENTS
+    LEFT JOIN StringIds on textId == id
+    WHERE eventType = $NvtxStartEndRange AND domainId = $custom_domainId
+    ORDER BY payload
+    """))
+@test custom_pushpop_ranges.text == ["outer range"]
+@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9 < 0.3
+@test ismissing(custom_pushpop_ranges.payload[1])
+
+
 # Julia Domain (GC)
 julia_categories = DataFrame(DBInterface.execute(db, """
     SELECT category, text
@@ -52,10 +87,6 @@ julia_categories = DataFrame(DBInterface.execute(db, """
 @test julia_categories.category == [1, 2, 3]
 @test julia_categories.text == ["auto", "full", "incremental"]
 
-julia_teststrs = DataFrame(DBInterface.execute(db, """
-    SELECT *
-    FROM StringIds
-    """))
 julia_ranges = DataFrame(DBInterface.execute(db, """
     SELECT COALESCE(text, value) as text, category, color
     FROM NVTX_EVENTS
