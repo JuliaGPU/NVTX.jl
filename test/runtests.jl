@@ -73,7 +73,7 @@ custom_startend_ranges = DataFrame(DBInterface.execute(db, """
     ORDER BY payload
     """))
 @test custom_startend_ranges.text == ["outer range"]
-@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9 < 0.35
+@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9 < 0.4
 @test ismissing(custom_startend_ranges.payload[1])
 
 
