@@ -40,13 +40,6 @@ Add NVTX hooks for the Julia garbage collector:
  - `free`: instrument calls to free as marks
 """
 function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
-    if !isfile(libjulia_nvtx_callbacks)
-        error("""
-            libjulia_nvtx_callbacks library not found. Run
-
-              using Pkg; Pkg.build("NVTX"; verbose=true)
-            """)
-    end
     if gc || alloc || free
         init!(JULIA_DOMAIN)
         unsafe_store!(cglobal((:julia_domain,libjulia_nvtx_callbacks),Ptr{Cvoid}), JULIA_DOMAIN.ptr)
@@ -56,17 +49,19 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
         unsafe_store!(cglobal((:gc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_MESSAGE.ptr)
         unsafe_store!(cglobal((:gc_color,libjulia_nvtx_callbacks),UInt32), GC_COLOR[])
         # https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia.h#L879-L883
-        name_category(JULIA_DOMAIN, 1, "auto")
-        name_category(JULIA_DOMAIN, 1, "full")
-        name_category(JULIA_DOMAIN, 2, "incremental")
+        name_category(JULIA_DOMAIN, 1+0, "auto")
+        name_category(JULIA_DOMAIN, 1+1, "full")
+        name_category(JULIA_DOMAIN, 1+2, "incremental")
     end
     if alloc
         init!(GC_ALLOC_MESSAGE)
         unsafe_store!(cglobal((:gc_alloc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_ALLOC_MESSAGE.ptr)
+        unsafe_store!(cglobal((:gc_alloc_color,libjulia_nvtx_callbacks),UInt32), GC_ALLOC_COLOR[])
     end
     if free
         init!(GC_FREE_MESSAGE)
         unsafe_store!(cglobal((:gc_free_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_FREE_MESSAGE.ptr)
+        unsafe_store!(cglobal((:gc_free_color,libjulia_nvtx_callbacks),UInt32), GC_FREE_COLOR[])
     end
 
     ccall(:jl_gc_set_cb_pre_gc, Cvoid, (Ptr{Cvoid}, Cint),
