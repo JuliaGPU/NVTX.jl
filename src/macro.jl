@@ -114,13 +114,9 @@ macro range(args...)
         if _isactive
             rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
         end
-        try
-            $(esc(expr))
-        finally
-            if _isactive
-                range_end(rangeid)
-            end
-        end
+        # Use Expr(:tryfinally, ...) so we don't introduce a new soft scope (https://github.com/JuliaGPU/NVTX.jl/issues/28)
+        # TODO: switch to solution once https://github.com/JuliaLang/julia/pull/39217 is resolved
+        $(Expr(:tryfinally, esc(expr), :(_isactive && range_end(rangeid))))
     end
 end
 
