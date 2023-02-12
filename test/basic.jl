@@ -29,21 +29,22 @@ using NVTX
 function dostuff(x)
     NVTX.@mark "a mark"
     NVTX.@mark "mark $x" payload=x
-
     NVTX.@range "sleeping" begin
+        y = true
         sleep(0.3)
     end
-
+    return y
 end
 
 NVTX.@annotate function dostuff(x::Float64)
     sleep(x)
+    return true
 end
 
 end
 
 @test NVTX.Domain(TestMod) === NVTX.Domain(TestMod)
 
-TestMod.dostuff(1)
-TestMod.dostuff(2)
-TestMod.dostuff(0.3)
+@test TestMod.dostuff(1)
+@test TestMod.dostuff(2)
+@test TestMod.dostuff(0.3)
