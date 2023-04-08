@@ -1,4 +1,13 @@
 # convenience functions for using Julia
+
+"""
+    gettid()
+
+Get the system thread ID of the current Julia thread. This is compatible with
+[`name_os_thread`](@ref).
+"""
+function gettid end
+
 @static if Sys.islinux()
     if Sys.ARCH == :x86_64
         gettid() = ccall(:syscall, UInt32, (Clong, Clong...), 186)
@@ -14,7 +23,11 @@ end
 """
     name_threads_julia()
 
-Name the threads owned by the Julia process "julia thread 1", "julia thread 2", etc.
+Name the threads owned by the Julia process "julia thread 1", "julia thread 2",
+etc.
+
+This function is called at module initialization if the profiler is active, so
+should not generally need to be called manually.
 """
 function name_threads_julia()
     Threads.@threads :static for t = 1:Threads.nthreads()
@@ -38,6 +51,12 @@ Add NVTX hooks for the Julia garbage collector:
  - `gc`: instrument GC invocations as ranges
  - `alloc`: instrument calls to alloc as marks (payload will contain size)
  - `free`: instrument calls to free as marks
+
+If the `JULIA_NVTX_CALLBACKS` environment variable is set, this will be
+automatically called at module initialization. `JULIA_NVTX_CALLBACKS` should be
+either a comma (`,`) or bar (`|`) separated list of callbacks to enable. For
+example, setting it to `gc|alloc|free` will enable all hooks. The`nsys profile`
+`--env-var` argument can be helpful for setting this variable.
 """
 function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     if gc || alloc || free

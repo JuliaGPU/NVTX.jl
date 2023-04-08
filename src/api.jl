@@ -145,9 +145,11 @@ The `domain` positional argument allows specifying a custom [`Domain`](@ref),
 otherise the default domain is used.
 
 Optional keyword arguments:
-- `message`: a text string
-- `color`: a `Colorant` from the Colors.jl package, or an integer containing an ARGB32 value.
-- `payload`: a 32- or 64-bit integer or floating point number
+- `message`: a text string, or [`StringHandle`](@ref) object.
+- `color`: a `Colorant` from the Colors.jl package, or an integer containing an
+  ARGB32 value.
+- `payload`: a value of one of the followin types: `UInt64`, `Int64`, `UInt32`,
+  `Int32`, `Float64`, `Float32`.
 - `category`: a positive integer. See [`name_category`](@ref).
 """
 function mark(attr::EventAttributes, msgref=nothing)
@@ -193,7 +195,7 @@ range_start(domain::Domain; kwargs...) = range_start(domain, event_attributes(;k
 """
     NVTX.range_end(range::RangeId)
 
-Ends a process range.
+Ends a process range started with [`range_start`](@ref).
 """
 function range_end(range::RangeId)
     ccall((:nvtxRangeEnd, libnvToolsExt), Cvoid,(RangeId,), range)
@@ -224,7 +226,7 @@ range_push(domain::Domain; kwargs...) = range_push(domain, event_attributes(;kwa
 """
     range_pop([domain::Domain])
 
-Ends a nested thread range. The `domain` argument must match that from [`range_push`](@ref).
+Ends a nested thread range created by [`range_push`](@ref) on `domain`.
 
 Returns the 0-based level of the range being ended.
 """

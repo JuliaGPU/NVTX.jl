@@ -1,4 +1,9 @@
-# Define the default domain for a module
+"""
+    Domain(::Module)
+
+Get the default domain for a module. If no domain has been defined for the
+module, a new one is created.
+"""
 function Domain(__module__::Module)
     if !isdefined(__module__, :__nvtx_domain__)
         @eval __module__ begin
@@ -79,7 +84,7 @@ end
 Instruments an instantaneous event.
 
  - `message` is a string. Default is to use `"file:lineno"``. String
-   interpolation is supported, but may incur overhead.
+   interpolation is supported, but may incur additional overhead.
  - `domain` is a [`Domain`](@ref). Default is to use the default domain of the
    current module.
  - `color` is either a `Colorant` from the Colors.jl package, or an `UInt32`
@@ -123,10 +128,11 @@ end
 """
     NVTX.@annotate [message] [domain=...] [color=...] [category=...] [payload=...] function ... end
 
-Instruments a range over the function definition. This is equivalent to calling
+Instruments a range over the function definition. Equivalent to using
 [`@range`](@ref) within the body of the function.
 
-See [`@mark`](@ref) for the other arguments.
+The default message is the function name and signature. See [`@mark`](@ref) for
+the other arguments.
 """
 macro annotate(args...)
     @assert length(args) >= 1
