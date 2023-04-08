@@ -13,5 +13,9 @@ makedocs(
 )
 
 deploydocs(
-    repo = "https://github.com/JuliaGPU/NVTX.jl"
+    repo = "https://github.com/JuliaGPU/NVTX.jl",
+    target = "build",
+    push_preview = true,
+    devbranch = "main",
+    forcepush = true,
 )
