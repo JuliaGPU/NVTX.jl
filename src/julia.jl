@@ -48,15 +48,18 @@ const GC_FREE_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"dodgerblue").col
     NVTX.enable_gc_hooks(;gc=true, alloc=false, free=false)
 
 Add NVTX hooks for the Julia garbage collector:
- - `gc`: instrument GC invocations as ranges
- - `alloc`: instrument calls to alloc as marks (payload will contain size)
- - `free`: instrument calls to free as marks
+ - `gc`: instrument GC invocations as ranges,
+ - `alloc`: instrument calls to alloc as marks (payload will contain allocation size), and
+ - `free`: instrument calls to free as marks.
 
 If the `JULIA_NVTX_CALLBACKS` environment variable is set, this will be
 automatically called at module initialization. `JULIA_NVTX_CALLBACKS` should be
 either a comma (`,`) or bar (`|`) separated list of callbacks to enable. For
-example, setting it to `gc|alloc|free` will enable all hooks. The`nsys profile`
-`--env-var` argument can be helpful for setting this variable.
+example, setting it to `gc|alloc|free` will enable all hooks. The 
+`--env-var` argument can be helpful for setting this variable, e.g.
+```sh
+nsys profile --env-var=JULIA_NVTX_CALLBACKS=gc|alloc|free julia --project script.jl
+```
 """
 function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     if gc || alloc || free

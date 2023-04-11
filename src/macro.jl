@@ -93,6 +93,15 @@ Instruments an instantaneous event.
  - `category`: an integer describing the category of the event. Default is 0.
  - `payload`: an optional integer (`Int32`, `UInt32`, `Int64`, `UInt64`) or
    floating point (`Float32`, `Float64`) value to attach to the event.
+
+# Example
+
+```julia
+for i = 1:10
+    NVTX.@mark "iterate" payload=i
+    do_work()
+end
+```
 """
 macro mark(args...)
     domain, message, color, category, payload = domain_attrs(__module__, file_lineno(__source__), args)
@@ -108,6 +117,15 @@ end
     NVTX.@range [message] [domain=...] [color=...] [category=...] [payload=...] expr
 
 Instruments a range over the `expr`. See [`@mark`](@ref) for the other arguments.
+
+# Example
+```julia
+for i = 1:10
+    NVTX.@range "iterate" payload=i begin
+        do_work()
+    end
+end
+```
 """
 macro range(args...)
     @assert length(args) >= 1
@@ -128,11 +146,28 @@ end
 """
     NVTX.@annotate [message] [domain=...] [color=...] [category=...] [payload=...] function ... end
 
-Instruments a range over the function definition. Equivalent to using
-[`@range`](@ref) within the body of the function.
+Instruments a range a function definition, so that each invocation of the
+method will be marked with a range. Equivalent to using [`@range`](@ref)
+within the body of the function.
 
 The default message is the function name and signature. See [`@mark`](@ref) for
-the other arguments.
+the other arguments. Function arguments can be used as range arguments.
+
+# Example
+```julia
+NVTX.@annotate payload=x function foo(x)
+    # function body
+end
+# is equivalent to
+function foo(x)
+    NVTX.@range payload=x begin
+        # function body
+    end
+end
+
+foo(1)
+foo(2)
+```
 """
 macro annotate(args...)
     @assert length(args) >= 1

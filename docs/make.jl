@@ -2,7 +2,7 @@ using Documenter
 using NVTX
 
 makedocs(
-    sitename = "NVTX",
+    sitename = "NVTX.jl",
     format = Documenter.HTML(),
     modules = [NVTX],
     pages = [

@@ -204,11 +204,20 @@ end
 """
     range_push([domain]; message, color, payload, category)
 
-Starts a nested thread range. Returns the 0-based level of range being started (the level is per-domain).
+Starts a nested thread range. Returns the 0-based level of range being started
+(the level is per-domain).
 
-Must be completed with [`range_pop`](@ref).
+Must be completed with [`range_pop`](@ref) with the same `domain` argument.
 
 See [`mark`](@ref) for the keyword arguments.
+
+!!! warning
+
+    Both `range_push` and `range_pop` must be called from the same thread: this is
+    difficult to guarantee in Julia as tasks can be migrated between threads when they
+    are re-scheduled, so we encourage using [`range_start`](@ref)/[`range_end`](@ref)
+    instead.
+
 """
 function range_push(attr::EventAttributes, msgref=nothing)
     GC.@preserve msgref begin
