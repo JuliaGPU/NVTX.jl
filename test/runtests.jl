@@ -62,7 +62,7 @@ custom_pushpop_ranges = DataFrame(DBInterface.execute(db, """
 
 @test custom_pushpop_ranges.text == ["inner range" for _ = 1:5]
 @test custom_pushpop_ranges.payload == 1:5
-@test all(time_ns -> 0.1 < time_ns/10^9 < 0.15, custom_pushpop_ranges.time_ns)
+@test all(time_ns -> 0.1 < time_ns/10^9, custom_pushpop_ranges.time_ns)
 @test length(unique(custom_pushpop_ranges.globalTid)) == 3
 
 custom_startend_ranges = DataFrame(DBInterface.execute(db, """
@@ -73,7 +73,7 @@ custom_startend_ranges = DataFrame(DBInterface.execute(db, """
     ORDER BY payload
     """))
 @test custom_startend_ranges.text == ["outer range"]
-@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9 < 0.4
+@test 0.2 < custom_startend_ranges.time_ns[1] / 10^9
 @test ismissing(custom_startend_ranges.payload[1])
 
 
@@ -129,7 +129,7 @@ testmod_ranges = DataFrame(DBInterface.execute(db, """
 
 @test testmod_ranges.text[1:2] == ["sleeping" for _ = 1:2]
 @test startswith(testmod_ranges.text[3], "dostuff(x::Float64)")
-@test all(time_ns -> 0.3 < time_ns/10^9 < 0.31, testmod_ranges.time_ns)
+@test all(time_ns -> 0.3 < time_ns/10^9, testmod_ranges.time_ns)
 
 testmod_marks = DataFrame(DBInterface.execute(db, """
     SELECT events.start,

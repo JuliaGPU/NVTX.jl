@@ -21,17 +21,17 @@ elseif Sys.iswindows()
 end
 
 """
-    name_threads_julia()
+    name_threads_julia([namefn])
 
-Name the threads owned by the Julia process "julia thread 1", "julia thread 2",
-etc.
+Name the threads owned by the Julia process using `namefn()`. The default is
+`namefn() = "julia thread \$(Threads.threadid())"`.
 
 This function is called at module initialization if the profiler is active, so
-should not generally need to be called manually.
+should not generally need to be called manually unless a custom name is required.
 """
-function name_threads_julia()
-    Threads.@threads :static for t = 1:Threads.nthreads()
-        name_os_thread(gettid(), "julia thread $(Threads.threadid())")
+function name_threads_julia(fn = () -> "julia thread $(Threads.threadid())")
+    Threads.@threads :static for _ = 1:Threads.nthreads()
+        name_os_thread(gettid(), fn())
     end
 end
 
