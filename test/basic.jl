@@ -26,8 +26,11 @@ GC.gc(true)
 
 module TestMod
 using NVTX
+
+const cat = NVTX.@category 34 "my category"
+
 function dostuff(x)
-    NVTX.@mark "a mark"
+    NVTX.@mark "a mark" category=cat
     NVTX.@mark "mark $x" payload=x
     NVTX.@range "sleeping" begin
         y = true

@@ -196,3 +196,27 @@ macro annotate(args...)
         end
     end
 end
+
+"""
+    NVTX.@category value name
+
+Annotate an NVTX category `value` with `name` in the modules default domain.
+For convenience, this returns the evaluated `value`
+
+```julia
+const category_3 = @category 3 "category 3"
+```
+
+A category should only be defined once for a particular value within a given domain.
+
+See also [`name_category`](@ref)
+"""
+macro category(val, name)
+    quote
+        v = $(esc(val))
+        if isactive()
+            name_category($(Domain(__module__)), v, $(esc(name)))
+        end
+        v
+    end
+end
