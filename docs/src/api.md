@@ -12,6 +12,7 @@ The following macros provide the most convenient usage of this package
 @mark
 @range
 @annotate
+@category
 ```
 
 ## Julia interactions

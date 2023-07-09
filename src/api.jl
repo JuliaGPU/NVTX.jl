@@ -252,6 +252,8 @@ end
 
 Annotate an NVTX `category` with `name`. If a [`Domain`](@ref) argument is
 provided, then annotation only applies within that domain.
+
+See also [`@category`](@ref)
 """
 function name_category(category::Integer, name::AbstractString)
     ccall((:nvtxNameCategoryA, libnvToolsExt), Cvoid,

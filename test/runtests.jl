@@ -2,7 +2,7 @@
 if haskey(ENV, "GITHUB_WORKSPACE")
     dirname = mkdir(joinpath(ENV["GITHUB_WORKSPACE"], "output"))
 else
-    dirname = mktempdir()
+    dirname = pwd(); #mktempdir()
 end
 
 nsys = get(ENV, "JULIA_NSYS", "nsys")
@@ -110,6 +110,15 @@ julia_marks = DataFrame(DBInterface.execute(db, """
 @test julia_marks.color == [Colors.ARGB32(Colors.colorant"goldenrod1").color, Colors.ARGB32(Colors.colorant"dodgerblue").color]
 
 # TestMod Domain
+testmod_categories = DataFrame(DBInterface.execute(db, """
+    SELECT category, text
+    FROM NVTX_EVENTS
+    WHERE eventType = $NvtxCategory AND domainId = $testmod_domainId
+    ORDER BY category
+    """))
+@test testmod_categories.category == [34]
+@test testmod_categories.text == ["my category"]
+
 testmod_ranges = DataFrame(DBInterface.execute(db, """
     SELECT start, end, end-start as time_ns, COALESCE(text, value) as text
     FROM NVTX_EVENTS
@@ -123,15 +132,27 @@ testmod_ranges = DataFrame(DBInterface.execute(db, """
 @test all(time_ns -> 0.3 < time_ns/10^9 < 0.31, testmod_ranges.time_ns)
 
 testmod_marks = DataFrame(DBInterface.execute(db, """
-    SELECT start, COALESCE(text, value) as text, COALESCE(uint64Value, int64Value, doubleValue, uint32Value, int32Value, floatValue) as payload
-    FROM NVTX_EVENTS
-    LEFT JOIN StringIds on textId == id
-    WHERE eventType = $NvtxMark AND domainId = $testmod_domainId
-    ORDER BY start
+    SELECT events.start,
+        COALESCE(events.text, strings.value) as text,
+        COALESCE(events.uint64Value, events.int64Value, events.doubleValue, events.uint32Value, events.int32Value, events.floatValue) as payload,
+        events.category,
+        events_category.text as category_name
+    FROM NVTX_EVENTS events
+    LEFT JOIN StringIds strings
+        ON events.textId == strings.id
+    LEFT JOIN NVTX_EVENTS events_category
+        ON events.category = events_category.category
+        AND events.domainId = events_category.domainId
+        AND events_category.eventType = $NvtxCategory
+    WHERE events.eventType = $NvtxMark
+        AND events.domainId = $testmod_domainId
+    ORDER BY events.start
     """))
 
 @test testmod_marks.text == ["a mark", "mark 1", "a mark", "mark 2"]
 @test isequal(testmod_marks.payload, [missing, 1, missing, 2])
+@test isequal(testmod_marks.category, [34, missing, 34, missing])
+@test isequal(testmod_marks.category_name, ["my category", missing, "my category", missing])
 
 # summary
 run(`$nsys stats --report nvtxsum $(joinpath(dirname, "basic.sqlite"))`)
