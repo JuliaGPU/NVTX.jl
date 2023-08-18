@@ -7,7 +7,10 @@ automatically initialize the entire API. This can make the first call much
 slower than subsequent calls.
 """
 function initialize()
-    ccall((:nvtxInitialize, libnvToolsExt), Cvoid, (Ptr{Cvoid},), C_NULL)
+    if enabled
+        ccall((:nvtxInitialize, libnvToolsExt), Cvoid, (Ptr{Cvoid},), C_NULL)
+    end
+    return nothing
 end
 
 
@@ -17,7 +20,10 @@ mutable struct Domain
 end
 
 function destroy(domain::Domain)
-    ccall((:nvtxDomainDestroy, libnvToolsExt), Cvoid, (Ptr{Cvoid},), domain.ptr)
+    if enabled
+        ccall((:nvtxDomainDestroy, libnvToolsExt), Cvoid, (Ptr{Cvoid},), domain.ptr)
+    end
+    return nothing
 end
 
 """
@@ -36,7 +42,7 @@ function Domain(name::AbstractString)
 end
 
 function init!(domain::Domain)
-    if domain.ptr == C_NULL && domain.name != ""
+    if enabled && domain.ptr == C_NULL && domain.name != "" # "" is the default domain
         domain.ptr = ccall((:nvtxDomainCreateA,libnvToolsExt), Ptr{Cvoid}, (Cstring,), domain.name)
         finalizer(destroy, domain)
     end
@@ -61,14 +67,12 @@ instrumentation overhead.
 """
 function StringHandle(domain::Domain, string::AbstractString)
     sh = StringHandle(C_NULL, domain, string)
-    if isactive()
-        init!(sh)
-    end
+    init!(sh)
     return sh
 end
 
 function init!(sh::StringHandle)
-    if sh.ptr == C_NULL
+    if enabled && sh.ptr == C_NULL
         init!(sh.domain)
         sh.ptr = ccall((:nvtxDomainRegisterStringA, libnvToolsExt), Ptr{Cvoid},
             (Ptr{Cvoid},Cstring), sh.domain.ptr, sh.string)
@@ -106,7 +110,6 @@ payloadval(payload::Float64) = reinterpret(UInt64,payload)
 payloadval(payload::UInt32) = UInt64(payload)
 payloadval(payload::Int32) = UInt64(reinterpret(UInt32,payload))
 payloadval(payload::Float32) = UInt64(reinterpret(UInt32,payload))
-
 
 function event_attributes(;
     message=nothing,
@@ -153,16 +156,22 @@ Optional keyword arguments:
 - `category`: a positive integer. See [`name_category`](@ref).
 """
 function mark(attr::EventAttributes, msgref=nothing)
-    GC.@preserve msgref begin
-        ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
-            (Ptr{EventAttributes},), Ref(attr))
+    if enabled
+        GC.@preserve msgref begin
+            ccall((:nvtxMarkEx, libnvToolsExt), Cvoid,
+                (Ptr{EventAttributes},), Ref(attr))
+        end
     end
+    return nothing
 end
 function mark(domain::Domain, attr::EventAttributes, msgref=nothing)
-    GC.@preserve msgref begin
-        ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
-        (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    if enabled
+        GC.@preserve msgref begin
+            ccall((:nvtxDomainMarkEx, libnvToolsExt), Cvoid,
+            (Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+        end
     end
+    return nothing
 end
 mark(;kwargs...) = mark(event_attributes(;kwargs...)...)
 mark(domain::Domain; kwargs...) = mark(domain, event_attributes(;kwargs...)...)
@@ -180,13 +189,21 @@ Returns a `RangeId` value, which should be passed to [`range_end`](@ref).
 See [`mark`](@ref) for the keyword arguments.
 """
 function range_start(attr::EventAttributes, msgref=nothing)
-    GC.@preserve msgref begin
-        ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+    if enabled
+        GC.@preserve msgref begin
+            ccall((:nvtxRangeStartEx, libnvToolsExt), RangeId,(Ptr{EventAttributes},), Ref(attr))
+        end
+    else
+        reinterpret(RangeId, zero(UInt64))
     end
 end
 function range_start(domain::Domain, attr::EventAttributes, msgref=nothing)
-    GC.@preserve msgref begin
-        ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    if enabled
+        GC.@preserve msgref begin
+            ccall((:nvtxDomainRangeStartEx, libnvToolsExt), RangeId,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+        end
+    else
+        reinterpret(RangeId, zero(UInt64))
     end
 end
 range_start(; kwargs...) = range_start(event_attributes(;kwargs...)...)
@@ -198,7 +215,10 @@ range_start(domain::Domain; kwargs...) = range_start(domain, event_attributes(;k
 Ends a process range started with [`range_start`](@ref).
 """
 function range_end(range::RangeId)
-    ccall((:nvtxRangeEnd, libnvToolsExt), Cvoid,(RangeId,), range)
+    if enabled
+        ccall((:nvtxRangeEnd, libnvToolsExt), Cvoid,(RangeId,), range)
+    end
+    return nothing
 end
 
 """
@@ -220,13 +240,21 @@ See [`mark`](@ref) for the keyword arguments.
 
 """
 function range_push(attr::EventAttributes, msgref=nothing)
-    GC.@preserve msgref begin
-        ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
+    if enabled
+        GC.@preserve msgref begin
+            ccall((:nvtxRangePushEx, libnvToolsExt), Cint,(Ptr{EventAttributes},), Ref(attr))
+        end
+    else
+        Cint(0)
     end
 end
 function range_push(domain::Domain, attr::EventAttributes, msgref=nothing)
-    GC.@preserve msgref begin
-        ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+    if enabled
+        GC.@preserve msgref begin
+            ccall((:nvtxDomainRangePushEx, libnvToolsExt), Cint,(Ptr{Cvoid},Ptr{EventAttributes}), domain.ptr, Ref(attr))
+        end
+    else
+        Cint(0)
     end
 end
 range_push(; kwargs...) = range_push(event_attributes(;kwargs...)...)
@@ -240,10 +268,18 @@ Ends a nested thread range created by [`range_push`](@ref) on `domain`.
 Returns the 0-based level of the range being ended.
 """
 function range_pop()
-    ccall((:nvtxRangePop, libnvToolsExt), Cint, ())
+    if enabled
+        ccall((:nvtxRangePop, libnvToolsExt), Cint, ())
+    else
+        return Cint(0)
+    end
 end
 function range_pop(domain::Domain)
-    ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), domain.ptr)
+    if enabled
+        ccall((:nvtxDomainRangePop, libnvToolsExt), Cint, (Ptr{Cvoid},), domain.ptr)
+    else
+        return Cint(0)
+    end
 end
 
 
@@ -256,12 +292,18 @@ provided, then annotation only applies within that domain.
 See also [`@category`](@ref)
 """
 function name_category(category::Integer, name::AbstractString)
-    ccall((:nvtxNameCategoryA, libnvToolsExt), Cvoid,
-    (UInt32, Cstring), category, name)
+    if enabled
+        ccall((:nvtxNameCategoryA, libnvToolsExt), Cvoid,
+        (UInt32, Cstring), category, name)
+    end
+    return nothing
 end
 function name_category(domain::Domain, category::Integer, name::AbstractString)
-    ccall((:nvtxDomainNameCategoryA, libnvToolsExt), Cvoid,
-    (Ptr{Cvoid}, UInt32, Cstring), domain.ptr, category, name)
+    if enabled
+        ccall((:nvtxDomainNameCategoryA, libnvToolsExt), Cvoid,
+            (Ptr{Cvoid}, UInt32, Cstring), domain.ptr, category, name)
+    end
+    return nothing
 end
 
 
@@ -271,6 +313,9 @@ end
 Attach a name to an operating system thread. `threadid` is the OS thread ID, returned by [`gettid`](@ref).
 """
 function name_os_thread(threadid::Integer, name::AbstractString)
-    ccall((:nvtxNameOsThreadA, libnvToolsExt), Cvoid,
-        (UInt32, Cstring), threadid, name)
+    if enabled
+        ccall((:nvtxNameOsThreadA, libnvToolsExt), Cvoid,
+            (UInt32, Cstring), threadid, name)
+        return nothing
+    end
 end

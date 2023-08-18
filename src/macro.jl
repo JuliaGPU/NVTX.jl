@@ -106,10 +106,7 @@ end
 macro mark(args...)
     domain, message, color, category, payload = domain_attrs(__module__, file_lineno(__source__), args)
     quote
-        _isactive = isactive()
-        if _isactive
-            mark($domain; message=$message, color=$color, category=$category, payload=$payload)
-        end
+        mark($domain; message=$message, color=$color, category=$category, payload=$payload)
     end
 end
 
@@ -133,13 +130,10 @@ macro range(args...)
     args = args[1:end-1]
     domain, message, color, category, payload = domain_attrs(__module__, file_lineno(__source__), args)
     quote
-        _isactive = isactive()
-        if _isactive
-            rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
-        end
+        rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
         # Use Expr(:tryfinally, ...) so we don't introduce a new soft scope (https://github.com/JuliaGPU/NVTX.jl/issues/28)
         # TODO: switch to solution once https://github.com/JuliaLang/julia/pull/39217 is resolved
-        $(Expr(:tryfinally, esc(expr), :(_isactive && range_end(rangeid))))
+        $(Expr(:tryfinally, esc(expr), :(range_end(rangeid))))
     end
 end
 
@@ -182,16 +176,11 @@ macro annotate(args...)
     domain, message, color, category, payload = domain_attrs(__module__, "$fsig $(file_lineno(__source__))", args)
     quote
         $(esc(fsig)) = begin
-            _isactive = isactive()
-            if _isactive
-                rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
-            end
+            rangeid = range_start($domain; message=$message, color=$color, category=$category, payload=$payload)
             try
                 $(esc(body))
             finally
-                if _isactive
-                    range_end(rangeid)
-                end
+                range_end(rangeid)
             end
         end
     end
@@ -214,9 +203,7 @@ See also [`name_category`](@ref)
 macro category(val, name)
     quote
         v = $(esc(val))
-        if isactive()
-            name_category($(Domain(__module__)), v, $(esc(name)))
-        end
+        name_category($(Domain(__module__)), v, $(esc(name)))
         v
     end
 end

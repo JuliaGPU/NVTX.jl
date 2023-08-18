@@ -30,8 +30,10 @@ This function is called at module initialization if the profiler is active, so
 should not generally need to be called manually unless a custom name is required.
 """
 function name_threads_julia(fn = () -> "julia thread $(Threads.threadid())")
-    Threads.@threads :static for _ = 1:Threads.nthreads()
-        name_os_thread(gettid(), fn())
+    if enabled
+        Threads.@threads :static for _ = 1:Threads.nthreads()
+            name_os_thread(gettid(), fn())
+        end
     end
 end
 
@@ -62,6 +64,9 @@ nsys profile --env-var=JULIA_NVTX_CALLBACKS=gc|alloc|free julia --project script
 ```
 """
 function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
+    if !enabled || !JuliaNVTXCallbacks_jll.is_available()
+        return nothing
+    end
     if gc || alloc || free
         init!(JULIA_DOMAIN)
         unsafe_store!(cglobal((:julia_domain,libjulia_nvtx_callbacks),Ptr{Cvoid}), JULIA_DOMAIN.ptr)
