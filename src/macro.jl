@@ -15,7 +15,6 @@ end
 
 
 file_lineno(__source__) = "$(__source__.file):$(__source__.line)"
-expr_file_lineno(expr, __source__) = "$expr $(__source__.file):$(__source__.line)"
 
 # determine the domain and attributes for the macro call
 function domain_attrs(__module__, default_message, args)
@@ -132,7 +131,7 @@ macro range(args...)
     @assert length(args) >= 1
     expr = args[end]
     args = args[1:end-1]
-    domain, message, color, category, payload = domain_attrs(__module__, expr_file_lineno(:($(esc(expr))), __source__), args)
+    domain, message, color, category, payload = domain_attrs(__module__, "$expr $(file_lineno(__source__))", args)
     quote
         _isactive = isactive()
         if _isactive
