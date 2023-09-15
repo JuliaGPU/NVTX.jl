@@ -116,7 +116,10 @@ end
 """
     NVTX.@range [message] [domain=...] [color=...] [category=...] [payload=...] expr
 
-Instruments a range over the `expr`. See [`@mark`](@ref) for the other arguments.
+Instruments a range over the `expr`.
+
+The default message is the expression, with file and line number. See
+[`@mark`](@ref) for the other arguments.
 
 # Example
 ```julia
@@ -146,12 +149,13 @@ end
 """
     NVTX.@annotate [message] [domain=...] [color=...] [category=...] [payload=...] function ... end
 
-Instruments a range a function definition, so that each invocation of the
-method will be marked with a range. Equivalent to using [`@range`](@ref)
-within the body of the function.
+Instruments a range a function definition, so that each invocation of the method
+will be marked with a range. Equivalent to using [`@range`](@ref) within the
+body of the function.
 
-The default message is the function name and signature. See [`@mark`](@ref) for
-the other arguments. Function arguments can be used as range arguments.
+The default message is the function signature with file and line number.. See
+[`@mark`](@ref) for the other arguments. Function arguments can be used as range
+arguments.
 
 # Example
 ```julia

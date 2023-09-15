@@ -127,15 +127,15 @@ testmod_ranges = DataFrame(DBInterface.execute(db, """
     ORDER BY start
     """))
 
-@test testmod_ranges.text[1] == "sleeping"
-@test testmod_ranges.time_ns[1] > 0.3 * 10^9
+@test startswith(testmod_ranges.text[1], "x += 1")
 
-@test startswith(testmod_ranges.text[2], "x += 1")
+@test testmod_ranges.text[2] == "sleeping"
+@test testmod_ranges.time_ns[2] > 0.3 * 10^9
 
-@test testmod_ranges.text[3] == "sleeping"
-@test testmod_ranges.time_ns[3] > 0.3 * 10^9
+@test startswith(testmod_ranges.text[3], "x += 1")
 
-@test startswith(testmod_ranges.text[4], "x += 1")
+@test testmod_ranges.text[4] == "sleeping"
+@test testmod_ranges.time_ns[4] > 0.3 * 10^9
 
 @test startswith(testmod_ranges.text[5], "dostuff(x::Float64)")
 @test testmod_ranges.time_ns[5] > 0.3 * 10^9
