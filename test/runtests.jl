@@ -128,8 +128,9 @@ testmod_ranges = DataFrame(DBInterface.execute(db, """
     """))
 
 @test testmod_ranges.text[1:2] == ["sleeping" for _ = 1:2]
-@test startswith(testmod_ranges.text[3], "dostuff(x::Float64)")
-@test all(time_ns -> 0.3 < time_ns/10^9, testmod_ranges.time_ns)
+@test startswith(testmod_ranges.text[3], "x += 1")
+@test startswith(testmod_ranges.text[4], "dostuff(x::Float64)")
+@test all(time_ns -> 0.3 < time_ns/10^9, testmod_ranges.time_ns[[1,2,4]])
 
 testmod_marks = DataFrame(DBInterface.execute(db, """
     SELECT events.start,
