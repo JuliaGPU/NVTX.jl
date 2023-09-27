@@ -29,6 +29,7 @@ These closely map to the C API
 ```@docs
 isactive
 initialize
+activate
 Domain
 StringHandle
 mark
