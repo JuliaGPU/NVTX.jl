@@ -1,6 +1,8 @@
 using Documenter
 using NVTX
 
+const ci = get(ENV, "CI", "") == "true"
+
 makedocs(
     sitename = "NVTX.jl",
     format = Documenter.HTML(),
@@ -12,10 +14,12 @@ makedocs(
     ]
 )
 
-deploydocs(
-    repo = "github.com/JuliaGPU/NVTX.jl",
-    target = "build",
-    push_preview = true,
-    devbranch = "main",
-    forcepush = true,
-)
+if ci
+    deploydocs(
+        repo = "github.com/JuliaGPU/NVTX.jl",
+        target = "build",
+        push_preview = true,
+        devbranch = "main",
+        forcepush = true,
+    )
+end
