@@ -40,7 +40,7 @@ jobs:
     - uses: julia-actions/cache@v1
     - uses: julia-actions/julia-buildpkg@v1
     - uses: julia-actions/julia-runtest@v1
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
         name: nsys ${{ matrix.julia_version }}
         path: output/
