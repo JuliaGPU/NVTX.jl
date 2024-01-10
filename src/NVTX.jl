@@ -31,6 +31,7 @@ function activate()
         alloc="alloc" in callbacks,
         free="free" in callbacks
     )
+    enable_inference_hook("inference" in callbacks)
 end
 
 function __init__()

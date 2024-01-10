@@ -43,6 +43,7 @@ const GC_FREE_MESSAGE = StringHandle(JULIA_DOMAIN, "free")
 const GC_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"brown").color)
 const GC_ALLOC_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"goldenrod1").color)
 const GC_FREE_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"dodgerblue").color)
+const INFERENCE_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"turquoise3").color)
 
 """
     NVTX.enable_gc_hooks(;gc=true, alloc=false, free=false)
@@ -97,3 +98,21 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     return nothing
 end
 
+typeinf_ext_nvtx(mi::Base.Core.MethodInstance, world::UInt) = typeinf_ext_nvtx(NativeInterpreter(world), mi)
+function typeinf_ext_nvtx(interp::Base.Core.Compiler.AbstractInterpreter, linfo::Base.Core.MethodInstance)
+    method = linfo.def
+    types = linfo.specTypes.parameters[2:end]
+    message = "$(method.name)($(join([string("::", t) for t in types], ", "))) @ $(method.module) $(method.file):$(method.line)"
+    id = range_start(JULIA_DOMAIN; message, color = INFERENCE_COLOR[])
+    ret = Core.Compiler.typeinf_ext_toplevel(interp, linfo)
+    range_end(id)
+    return ret
+end
+
+function enable_inference_hook(enable::Bool)
+    if enable
+        ccall(:jl_set_typeinf_func, Cvoid, (Any,), typeinf_ext_nvtx)
+    else
+        ccall(:jl_set_typeinf_func, Cvoid, (Any,), Core.Compiler.typeinf_ext_toplevel)
+    end
+end
