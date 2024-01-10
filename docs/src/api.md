@@ -19,6 +19,7 @@ The following macros provide the most convenient usage of this package
 
 ```@docs
 enable_gc_hooks()
+enable_inference_hook
 name_threads_julia()
 ```
 

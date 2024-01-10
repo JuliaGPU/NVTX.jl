@@ -109,7 +109,13 @@ function typeinf_ext_nvtx(interp::Base.Core.Compiler.AbstractInterpreter, linfo:
     return ret
 end
 
-function enable_inference_hook(enable::Bool)
+"""
+    NVTX.enable_inference_hook(active::Bool=true)
+
+Add hooks for method inference. Can also be activated by adding `inference` to
+the `JULIA_NVTX_CALLBACKS` environment variable.
+"""
+function enable_inference_hook(enable::Bool=true)
     if enable
         ccall(:jl_set_typeinf_func, Cvoid, (Any,), typeinf_ext_nvtx)
     else

@@ -26,7 +26,7 @@ end
 
 ## Instrumenting Julia garbage collector
 
-Additionally, it is possible to annotate the Julia garbage collector by calling [`NVTX.enable_gc_hooks()`](@ref), or setting the `JULIA_NVTX_CALLBACKS` environment variable.
+Additionally, it is possible to annotate the Julia garbage collector by calling [`NVTX.enable_gc_hooks()`](@ref) and [`NVTX.enable_inference_hook()`](@ref), or setting the `JULIA_NVTX_CALLBACKS` environment variable.
 
 ## Running the profiler
 
