@@ -72,9 +72,9 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
         unsafe_store!(cglobal((:gc_message,libjulia_nvtx_callbacks),Ptr{Cvoid}), GC_MESSAGE.ptr)
         unsafe_store!(cglobal((:gc_color,libjulia_nvtx_callbacks),UInt32), GC_COLOR[])
         # https://github.com/JuliaLang/julia/blob/v1.8.3/src/julia.h#L879-L883
-        name_category(JULIA_DOMAIN, 1+0, "auto")
-        name_category(JULIA_DOMAIN, 1+1, "full")
-        name_category(JULIA_DOMAIN, 1+2, "incremental")
+        name_category(JULIA_DOMAIN, 1+0, "GC auto")
+        name_category(JULIA_DOMAIN, 1+1, "GC full")
+        name_category(JULIA_DOMAIN, 1+2, "GC incremental")
     end
     if alloc
         init!(GC_ALLOC_MESSAGE)
@@ -103,12 +103,13 @@ function typeinf_ext_nvtx(interp::Base.Core.Compiler.AbstractInterpreter, linfo:
     method = linfo.def
     types = linfo.specTypes.parameters[2:end]
     message = "$(method.name)($(join([string("::", t) for t in types], ", "))) @ $(method.module) $(method.file):$(method.line)"
-    println(message)
-    id = range_start(JULIA_DOMAIN; message, color = INFERENCE_COLOR[])
+    id = range_start(JULIA_DOMAIN; message, color = INFERENCE_COLOR[], category = 10)
     ret = Core.Compiler.typeinf_ext_toplevel(interp, linfo)
     range_end(id)
     return ret
 end
+precompile(typeinf_ext_nvtx, (Base.Core.Compiler.NativeInterpreter, Base.Core.MethodInstance))
+precompile(typeinf_ext_nvtx, (Base.Core.MethodInstance, UInt))
 
 """
     NVTX.enable_inference_hook(active::Bool=true)
@@ -118,6 +119,7 @@ the `JULIA_NVTX_CALLBACKS` environment variable.
 """
 function enable_inference_hook(enable::Bool=true)
     if enable
+        name_category(JULIA_DOMAIN, 11, "compiler inference")
         ccall(:jl_set_typeinf_func, Cvoid, (Any,), typeinf_ext_nvtx)
     else
         ccall(:jl_set_typeinf_func, Cvoid, (Any,), Core.Compiler.typeinf_ext_toplevel)
