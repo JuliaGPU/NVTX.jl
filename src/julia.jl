@@ -98,11 +98,12 @@ function enable_gc_hooks(;gc::Bool=true, alloc::Bool=false, free::Bool=false)
     return nothing
 end
 
-typeinf_ext_nvtx(mi::Base.Core.MethodInstance, world::UInt) = typeinf_ext_nvtx(NativeInterpreter(world), mi)
+typeinf_ext_nvtx(mi::Base.Core.MethodInstance, world::UInt) = typeinf_ext_nvtx(Base.Core.Compiler.NativeInterpreter(world), mi)
 function typeinf_ext_nvtx(interp::Base.Core.Compiler.AbstractInterpreter, linfo::Base.Core.MethodInstance)
     method = linfo.def
     types = linfo.specTypes.parameters[2:end]
     message = "$(method.name)($(join([string("::", t) for t in types], ", "))) @ $(method.module) $(method.file):$(method.line)"
+    println(message)
     id = range_start(JULIA_DOMAIN; message, color = INFERENCE_COLOR[])
     ret = Core.Compiler.typeinf_ext_toplevel(interp, linfo)
     range_end(id)
