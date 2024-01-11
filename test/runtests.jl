@@ -84,14 +84,14 @@ julia_categories = DataFrame(DBInterface.execute(db, """
     WHERE eventType = $NvtxCategory AND domainId = $julia_domainId
     ORDER BY category
     """))
-@test julia_categories.category == [1, 2, 3]
-@test julia_categories.text == ["auto", "full", "incremental"]
+@test julia_categories.category == [1, 2, 3, 11]
+@test julia_categories.text == ["GC auto", "GC full", "GC incremental", "compiler inference"]
 
 julia_ranges = DataFrame(DBInterface.execute(db, """
     SELECT COALESCE(text, value) as text, category, color
     FROM NVTX_EVENTS
     LEFT JOIN StringIds on textId == id
-    WHERE eventType = $NvtxPushPopRange AND domainId = $julia_domainId AND category > 1
+    WHERE eventType = $NvtxPushPopRange AND domainId = $julia_domainId AND category > 1 AND category < 10
     ORDER BY start
     """)) # exclude auto GC
 @test julia_ranges.text == ["GC" for i = 1:2]
