@@ -103,7 +103,7 @@ function typeinf_ext_nvtx(interp::Base.Core.Compiler.AbstractInterpreter, linfo:
     method = linfo.def
     types = linfo.specTypes.parameters[2:end]
     message = "$(method.name)($(join([string("::", t) for t in types], ", "))) @ $(method.module) $(method.file):$(method.line)"
-    id = range_start(JULIA_DOMAIN; message, color = INFERENCE_COLOR[], category = 10)
+    id = range_start(JULIA_DOMAIN; message, color = INFERENCE_COLOR[], category = 11)
     ret = Core.Compiler.typeinf_ext_toplevel(interp, linfo)
     range_end(id)
     return ret
