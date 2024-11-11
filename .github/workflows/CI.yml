@@ -34,12 +34,12 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y nsight-systems-2022.4.2
     - uses: actions/checkout@v4
-    - uses: julia-actions/setup-julia@v1
+    - uses: julia-actions/setup-julia@latest
       with:
         version: ${{ matrix.julia_version }}
-    - uses: julia-actions/cache@v1
-    - uses: julia-actions/julia-buildpkg@v1
-    - uses: julia-actions/julia-runtest@v1
+    - uses: julia-actions/cache@v2
+    - uses: julia-actions/julia-buildpkg@latest
+    - uses: julia-actions/julia-runtest@latest
     - uses: actions/upload-artifact@v4
       with:
         name: nsys ${{ matrix.julia_version }}
