@@ -13,11 +13,11 @@ jobs:
     strategy:
       matrix:
         julia_version:
-          - "1.6"
+          - "1.10"
           - "1"
           - "nightly"
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
       # based on https://github.com/pytorch/TensorRT/blob/10b9ecd488c10a79a19466df8509e7059ce27f02/.github/workflows/docgen.yml#L48-L64
