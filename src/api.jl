@@ -142,13 +142,13 @@ end
 Marks an instantaneous event in the application.
 
 The `domain` positional argument allows specifying a custom [`Domain`](@ref),
-otherise the default domain is used.
+otherwise the default domain is used.
 
 Optional keyword arguments:
 - `message`: a text string, or [`StringHandle`](@ref) object.
 - `color`: a `Colorant` from the Colors.jl package, or an integer containing an
   ARGB32 value.
-- `payload`: a value of one of the followin types: `UInt64`, `Int64`, `UInt32`,
+- `payload`: a value of one of the following types: `UInt64`, `Int64`, `UInt32`,
   `Int32`, `Float64`, `Float32`.
 - `category`: a positive integer. See [`name_category`](@ref).
 """
