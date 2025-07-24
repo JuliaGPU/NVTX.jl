@@ -10,7 +10,7 @@ function Domain(__module__::Module)
             const __nvtx_domain__ = $(Domain(string(__module__)))
         end
     end
-    return __module__.__nvtx_domain__
+    return Base.invokelatest(getproperty, __module__, :__nvtx_domain__)
 end
 
 
