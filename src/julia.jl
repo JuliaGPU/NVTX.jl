@@ -40,10 +40,14 @@ const JULIA_DOMAIN = Domain("Julia")
 const GC_MESSAGE = StringHandle(JULIA_DOMAIN, "GC")
 const GC_ALLOC_MESSAGE = StringHandle(JULIA_DOMAIN, "alloc")
 const GC_FREE_MESSAGE = StringHandle(JULIA_DOMAIN, "free")
-const GC_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"brown").color)
-const GC_ALLOC_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"goldenrod1").color)
-const GC_FREE_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"dodgerblue").color)
-const INFERENCE_COLOR = Ref{UInt32}(Colors.ARGB32(Colors.colorant"turquoise3").color)
+# Colors.ARGB32(Colors.colorant"brown").color
+const GC_COLOR = Ref{UInt32}(0xffa52a2a)
+# Colors.ARGB32(Colors.colorant"goldenrod1").color
+const GC_ALLOC_COLOR = Ref{UInt32}(0xffffc125)
+# Colors.ARGB32(Colors.colorant"dodgerblue").color
+const GC_FREE_COLOR = Ref{UInt32}(0xff1e90ff)
+# Colors.ARGB32(Colors.colorant"turquoise3").color
+const INFERENCE_COLOR = Ref{UInt32}(0xff00c5cd)
 
 """
     NVTX.enable_gc_hooks(;gc=true, alloc=false, free=false)
