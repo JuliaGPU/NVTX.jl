@@ -21,7 +21,7 @@ running under a different profiler that is compatible with NVTX. Note that in su
 cases, you may have to manually set the `NVTX_INJECTION64_PATH` environment variable
 and have it point to a library that can handle the NVTX APIs.
 """
-function activate()
+function activate(allow_inference_hook=VERSION < v"1.12")
     NVTX_ACTIVE[] = true
     initialize()
     name_threads_julia()
@@ -31,7 +31,11 @@ function activate()
         alloc="alloc" in callbacks,
         free="free" in callbacks
     )
-    enable_inference_hook("inference" in callbacks)
+
+    # The inference hook is broken on 1.12: https://github.com/JuliaGPU/NVTX.jl/pull/56
+    if allow_inference_hook
+        enable_inference_hook("inference" in callbacks)
+    end
 end
 
 function __init__()

@@ -84,8 +84,14 @@ julia_categories = DataFrame(DBInterface.execute(db, """
     WHERE eventType = $NvtxCategory AND domainId = $julia_domainId
     ORDER BY category
     """))
-@test julia_categories.category == [1, 2, 3, 11]
-@test julia_categories.text == ["GC auto", "GC full", "GC incremental", "compiler inference"]
+if VERSION < v"1.12"
+    @test julia_categories.category == [1, 2, 3, 11]
+    @test julia_categories.text == ["GC auto", "GC full", "GC incremental", "compiler inference"]
+else
+    # The inference hook is broken on 1.12: https://github.com/JuliaGPU/NVTX.jl/pull/56
+    @test julia_categories.category == [1, 2, 3]
+    @test julia_categories.text == ["GC auto", "GC full", "GC incremental"]
+end
 
 julia_ranges = DataFrame(DBInterface.execute(db, """
     SELECT COALESCE(text, value) as text, category, color
