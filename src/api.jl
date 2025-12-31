@@ -107,6 +107,8 @@ payloadval(payload::UInt32) = UInt64(payload)
 payloadval(payload::Int32) = UInt64(reinterpret(UInt32,payload))
 payloadval(payload::Float32) = UInt64(reinterpret(UInt32,payload))
 
+# This is extended in the Colors extension for Colorant support
+_normalize_color(x) = x
 
 function event_attributes(;
     message=nothing,
@@ -114,9 +116,7 @@ function event_attributes(;
     category=nothing,
     payload=nothing)
 
-    if color isa Colors.Colorant
-        color = Colors.ARGB32(color).color
-    end
+    color = _normalize_color(color)
 
     if message isa AbstractString
         message = Base.cconvert(Cstring, message)

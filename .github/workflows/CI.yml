@@ -11,6 +11,7 @@ on:
 jobs:
   Linux:
     strategy:
+      fail-fast: false
       matrix:
         julia_version:
           - "1.10"

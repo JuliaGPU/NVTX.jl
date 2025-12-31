@@ -7,7 +7,8 @@ end
 
 nsys = get(ENV, "JULIA_NSYS", "nsys")
 
-run(`$nsys profile --env-var="JULIA_NVTX_CALLBACKS=gc|alloc|free|inference" --output=$(joinpath(dirname, "basic")) --export=json,sqlite --trace=nvtx $(Base.julia_cmd()) --project=$(Base.active_project()) --threads=3 basic.jl`)
+threads_arg = VERSION >= v"1.12" ? `--threads=3,0` : `--threads=3`
+run(`$nsys profile --env-var="JULIA_NVTX_CALLBACKS=gc|alloc|free|inference" --force-overwrite=true --output=$(joinpath(dirname, "basic")) --export=json,sqlite --trace=nvtx $(Base.julia_cmd()) --project=$(Base.active_project()) $(threads_arg) basic.jl`)
 
 using DataFrames, SQLite, DBInterface, Colors, Test
 
