@@ -38,7 +38,7 @@ jobs:
     - uses: julia-actions/cache@v2
     - uses: julia-actions/julia-buildpkg@latest
     - uses: julia-actions/julia-runtest@latest
-    - uses: actions/upload-artifact@v5
+    - uses: actions/upload-artifact@v6
       with:
         name: nsys ${{ matrix.julia_version }}
         path: output/
