@@ -1,6 +1,6 @@
 module NVTX
 
-import Colors, Libdl
+import Libdl
 using NVTX_jll, JuliaNVTXCallbacks_jll
 
 const NVTX_ACTIVE = Ref{Bool}(false)
