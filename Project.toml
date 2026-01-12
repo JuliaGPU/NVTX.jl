@@ -1,6 +1,6 @@
 name = "NVTX"
 uuid = "5da4648a-3479-48b8-97b9-01cb529c0a1f"
-version = "1.0.2"
+version = "1.0.3"
 authors = ["Simon Byrne <simonbyrne@gmail.com>"]
 
 [deps]
