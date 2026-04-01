@@ -114,7 +114,7 @@ struct EventAttributes
     message::Ptr{Cvoid}
 end
 
-payloadtype(::Nothing) = NVTX_PAYLOAD_TYPE_UNKNOWN
+payloadtype(::Nothing) = NVTX_PAYLOAD_UNKNOWN
 payloadtype(::UInt64) = NVTX_PAYLOAD_TYPE_UNSIGNED_INT64
 payloadtype(::Int64) = NVTX_PAYLOAD_TYPE_INT64
 payloadtype(::Float64) = NVTX_PAYLOAD_TYPE_DOUBLE
