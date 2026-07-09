@@ -1,3 +1,4 @@
+using CEnum
 
 """
     initialize()
@@ -76,36 +77,60 @@ function init!(sh::StringHandle)
     return sh
 end
 
+@cenum nvtxColorType_t::Int32 begin
+    NVTX_COLOR_UNKNOWN  = 0
+    NVTX_COLOR_ARGB     = 1
+end
+
+@cenum nvtxMessageType_t::Int32 begin
+    NVTX_MESSAGE_UNKNOWN          = 0
+    NVTX_MESSAGE_TYPE_ASCII       = 1
+    NVTX_MESSAGE_TYPE_UNICODE     = 2
+    #= NVTX_VERSION_2 =#
+    NVTX_MESSAGE_TYPE_REGISTERED  = 3
+end
+
+@cenum nvtxPayloadType_t::Int32 begin
+    NVTX_PAYLOAD_UNKNOWN = 0
+    NVTX_PAYLOAD_TYPE_UNSIGNED_INT64 = 1
+    NVTX_PAYLOAD_TYPE_INT64 = 2
+    NVTX_PAYLOAD_TYPE_DOUBLE = 3
+    #= NVTX_VERSION_2 =#
+    NVTX_PAYLOAD_TYPE_UNSIGNED_INT32 = 4
+    NVTX_PAYLOAD_TYPE_INT32 = 5
+    NVTX_PAYLOAD_TYPE_FLOAT = 6
+end
+
 struct EventAttributes
     version::UInt16
     size::UInt16
     category::UInt32
-    colortype::Int32
+    colortype::nvtxColorType_t
     color::UInt32
-    payloadtype::Int32
+    payloadtype::nvtxPayloadType_t
     reserved0::Int32
     payload::UInt64
-    messagetype::Int32
+    messagetype::nvtxMessageType_t
     message::Ptr{Cvoid}
 end
 
-payloadtype(::Nothing) = 0
-payloadtype(::UInt64) = 1
-payloadtype(::Int64) = 2
-payloadtype(::Float64) = 3
-payloadtype(::UInt32) = 4
-payloadtype(::Int32) = 5
-payloadtype(::Float32) = 6
+payloadtype(::Nothing) = NVTX_PAYLOAD_UNKNOWN
+payloadtype(::UInt64) = NVTX_PAYLOAD_TYPE_UNSIGNED_INT64
+payloadtype(::Int64) = NVTX_PAYLOAD_TYPE_INT64
+payloadtype(::Float64) = NVTX_PAYLOAD_TYPE_DOUBLE
+payloadtype(::UInt32) = NVTX_PAYLOAD_TYPE_UNSIGNED_INT32
+payloadtype(::Int32) = NVTX_PAYLOAD_TYPE_INT32
+payloadtype(::Float32) = NVTX_PAYLOAD_TYPE_FLOAT
 payloadtype(_) = error("Unsupported payload type")
 
 payloadval(::Nothing) = UInt64(0)
 payloadval(payload::UInt64) = payload
-payloadval(payload::Int64) = reinterpret(UInt64,payload)
-payloadval(payload::Float64) = reinterpret(UInt64,payload)
+payloadval(payload::Int64) = reinterpret(UInt64, payload)
+payloadval(payload::Float64) = reinterpret(UInt64, payload)
 # assumes little-endian
 payloadval(payload::UInt32) = UInt64(payload)
-payloadval(payload::Int32) = UInt64(reinterpret(UInt32,payload))
-payloadval(payload::Float32) = UInt64(reinterpret(UInt32,payload))
+payloadval(payload::Int32) = UInt64(reinterpret(UInt32, payload))
+payloadval(payload::Float32) = UInt64(reinterpret(UInt32, payload))
 
 # This is extended in the Colors extension for Colorant support
 _normalize_color(x) = x
@@ -121,19 +146,32 @@ function event_attributes(;
     if message isa AbstractString
         message = Base.cconvert(Cstring, message)
     end
+    # This will be GC.preserved by the caller
+    msgref = message
+
+    if isnothing(message)
+        message_type = NVTX_MESSAGE_UNKNOWN
+        message = C_NULL
+    elseif message isa StringHandle
+        message_type = NVTX_MESSAGE_TYPE_REGISTERED
+        message = message.ptr
+    else
+        message_type = NVTX_MESSAGE_TYPE_ASCII
+        message = Base.unsafe_convert(Cstring, message)
+    end
 
     EventAttributes(
         3,                        # version
         sizeof(EventAttributes),  # size
         something(category, 0),   # category
-        isnothing(color) ? 0 : 1, # colortype (1 = ARGB)
+        isnothing(color) ? NVTX_COLOR_UNKNOWN : NVTX_COLOR_ARGB,
         something(color, 0),      # color
         payloadtype(payload),     # payloadtype
         0,                        # reserved0
         payloadval(payload),      # payload
-        isnothing(message) ? 0 : message isa StringHandle ? 3 : 1,      # messagetype
-        isnothing(message) ? C_NULL : message isa StringHandle ? message.ptr : Base.unsafe_convert(Cstring, message), # message
-    ), message
+        message_type,             # messagetype
+        message, # message
+    ), msgref
 end
 
 """
