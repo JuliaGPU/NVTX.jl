@@ -9,6 +9,7 @@ jobs:
   Documenter:
     permissions:
       contents: write
+      pull-requests: write  # link the preview from pull requests that change the docs
     name: Documentation
     runs-on: ubuntu-latest
     steps:
@@ -18,3 +19,30 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+
+      # Documenter only reports the preview as a commit status, which is easy to miss, so
+      # link it from pull requests that change the documentation. Pull requests from forks
+      # don't get a preview.
+      - name: Link the preview
+        if: |
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const issue_number = context.issue.number;
+            const files = await github.paginate(github.rest.pulls.listFiles,
+                                                {owner, repo, pull_number: issue_number, per_page: 100});
+            if (!files.some(file => file.filename.startsWith('docs/'))) {
+              return;
+            }
+            const marker = '<!-- documentation-preview -->';
+            const comments = await github.paginate(github.rest.issues.listComments,
+                                                   {owner, repo, issue_number, per_page: 100});
+            if (comments.some(comment => comment.body?.startsWith(marker))) {
+              return;
+            }
+            const url = `https://juliagpu.github.io/NVTX.jl/previews/PR${issue_number}/`;
+            await github.rest.issues.createComment({owner, repo, issue_number,
+                                                   body: `${marker}\nDocumentation preview: ${url}`});
